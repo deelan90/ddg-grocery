@@ -113,6 +113,23 @@ input:focus{border-color:var(--pri)}
 .dbar .snz{position:relative;z-index:1}
 .fab{position:fixed;right:18px;bottom:calc(22px + env(safe-area-inset-bottom));z-index:70;height:54px;border-radius:27px;background:linear-gradient(135deg,var(--pri),#0fae8b);color:#04241d;font-weight:800;border:none;display:flex;align-items:center;gap:8px;padding:0 20px;box-shadow:0 12px 34px rgba(32,213,171,.4);cursor:pointer;font-size:15px}
 .fab:active{transform:scale(.96)}
+
+.hero{background:linear-gradient(150deg,rgba(32,213,171,.13),var(--card) 60%);border:1px solid var(--bd);border-radius:20px;padding:22px;margin-bottom:16px}
+.hero .hl{color:var(--mut);font-size:11px;letter-spacing:.1em;font-weight:600}
+.hero .hamt{font-size:46px;font-weight:800;letter-spacing:-1.6px;margin:4px 0;line-height:1}
+.hero .hd{display:flex;align-items:center;gap:6px;font-size:13.5px;font-weight:600;margin-top:6px}
+.acc{border-bottom:1px solid #232325}.acc:last-child{border-bottom:none}
+.acch{display:flex;align-items:center;gap:12px;padding:14px 2px;cursor:pointer;user-select:none}
+.acch .cico{font-size:22px;width:26px;text-align:center}
+.acch .cnm{font-weight:600;font-size:15.5px;flex:1;letter-spacing:-.1px}
+.acch .cct{font-size:12px;color:var(--mut)}
+.acch .cct b{color:var(--over)}
+.acch .chev{color:var(--mut);transition:transform .25s}
+.acc.open .acch .chev{transform:rotate(180deg)}
+.accb{max-height:0;overflow:hidden;transition:max-height .35s ease}
+.acc.open .accb{max-height:3000px;padding-bottom:8px}
+.dbar .ic{position:relative;z-index:1;font-size:16px;width:20px;text-align:center}
+svg.trend{display:block;width:100%;height:auto}
 </style></head>
 <body>
 <header><div class="hbar">
@@ -207,9 +224,23 @@ const SEED_MANUAL=[
   {name:'Bananas (Cavendish)',qty:1,price:0.22},{name:'Lemon',qty:1,price:0.36},{name:'Potato Red Wash 1kg',qty:1,price:2.99},
   {name:'Bslsji',qty:1,price:8.00},{name:'Zucchini',qty:1,price:0.69},{name:'Apples Pink Lady',qty:1,price:5.87}]}];
 (function(){const all=store.get('manual_orders',[]);let ch=false;SEED_MANUAL.forEach(s=>{if(!all.some(x=>x.id===s.id)){all.push(s);ch=true;}});if(ch)store.set('manual_orders',all);})();
+
+const CATICON={'Dairy, Eggs & Fridge':'🥛','Fruit & Vegetables':'🥦','Meat & Seafood':'🍗','Pantry':'🥫','Bakery':'🍞','Frozen':'🧊','Drinks':'🥤','Household':'🧻','Chips, Chocolates & Snacks':'🍫','Specials & Seasonal':'🎉','Health & Beauty':'🧴','Pet':'🐾','Deli':'🧀'};
+function catIcon(c){return CATICON[c]||'🛒';}
+const ICONMAP=[['toilet','🧻'],['paper towel','🧻'],['tissue','🤧'],['milk','🥛'],['bread','🍞'],['roll','🍞'],['wrap','🌯'],['egg','🥚'],['chicken','🍗'],['lamb','🥩'],['beef','🥩'],['mince','🥩'],['banana','🍌'],['apple','🍎'],['tomato','🍅'],['potato','🥔'],['onion','🧅'],['carrot','🥕'],['lettuce','🥬'],['spinach','🥬'],['broccoli','🥦'],['cucumber','🥒'],['capsicum','🫑'],['mushroom','🍄'],['lemon','🍋'],['grape','🍇'],['peach','🍑'],['cheese','🧀'],['yog','🥣'],['oat','🥣'],['cream','🥛'],['butter','🧈'],['marg','🧈'],['olive oil','🫒'],['oil','🫗'],['rice','🍚'],['pasta','🍝'],['spaghetti','🍝'],['noodle','🍜'],['chip','🍟'],['crisp','🍟'],['shapes','🧀'],['choc','🍫'],['cookie','🍪'],['biscuit','🍪'],['cracker','🍘'],['honey','🍯'],['sauce','🥫'],['bean','🫘'],['chick pea','🫘'],['coffee','☕'],['tea','🍵'],['juice','🧃'],['soft drink','🥤'],['cola','🥤'],['water','💧'],['ice','🍦'],['pizza','🍕'],['taco','🌮'],['clean','🧽'],['dish','🧽'],['laundry','🧺'],['detergent','🧴'],['toothpaste','🪥'],['dog','🐶'],['fish','🐟'],['peanut','🥜'],['nut','🥜'],['flour','🌾'],['sugar','🍬'],['salt','🧂'],['pepper','🌶'],['chilli','🌶'],['garlic','🧄'],['ginger','🫚'],['herb','🌿'],['parsley','🌿'],['basil','🌿'],['zucchini','🥒'],['eggplant','🍆'],['pineapple','🍍'],['strawberr','🍓'],['beetroot','🥬'],['cauliflower','🥦'],['pea','🫛']];
+function iconFor(n){n=(n||'').toLowerCase();for(const[k,v]of ICONMAP)if(n.includes(k))return v;return '🛒';}
+function trendSvg(mm){if(!mm.length)return '<div class="mut">No data yet.</div>';
+  const w=340,h=112,pl=6,pr=6,pt=16,pb=20;const vals=mm.map(m=>m.spent);const max=Math.max(...vals),min=Math.min(...vals),rng=max-min||1;
+  const X=i=>pl+i*((w-pl-pr)/Math.max(mm.length-1,1));const Y=v=>pt+(1-(v-min)/rng)*(h-pt-pb);
+  const pts=mm.map((m,i)=>X(i).toFixed(1)+','+Y(m.spent).toFixed(1));
+  const line='M'+pts.join(' L');const area=`M${X(0).toFixed(1)},${h-pb} L`+pts.join(' L')+` L${X(mm.length-1).toFixed(1)},${h-pb} Z`;
+  const dots=mm.map((m,i)=>`<circle cx="${X(i).toFixed(1)}" cy="${Y(m.spent).toFixed(1)}" r="2.4" fill="#0a84ff"/>`).join('');
+  const maxi=vals.indexOf(max);
+  const lab=(i,a)=>`<text x="${X(i).toFixed(1)}" y="${h-5}" fill="#98989d" font-size="9" text-anchor="${a}">${mm[i].ym.slice(2).replace('-','/')}</text>`;
+  return `<svg class="trend" viewBox="0 0 ${w} ${h}"><defs><linearGradient id="tg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#0a84ff" stop-opacity=".35"/><stop offset="1" stop-color="#0a84ff" stop-opacity="0"/></linearGradient></defs><path d="${area}" fill="url(#tg)"/><path d="${line}" fill="none" stroke="#0a84ff" stroke-width="2"/>${dots}<text x="${X(maxi).toFixed(1)}" y="${(Y(max)-6).toFixed(1)}" fill="#f5f5f7" font-size="9.5" font-weight="700" text-anchor="middle">$${Math.round(max)}</text>${lab(0,'start')}${lab(mm.length-1,'end')}</svg>`;}
 let RAW=JSON.parse(document.getElementById('d').textContent);
 let D=deriveFromRaw(RAW);
-let state={view:'dash',tab:'⭐ Staples',invCat:'All',q:'',density:store.get('density','cozy')};
+let state={view:'dash',tab:'⭐ Staples',invCat:'All',q:'',openCat:null,density:store.get('density','cozy')};
 let INSIGHTS=null;
 function snoozed(){return store.get('ddg_snooze_v1',{})}
 function toggleSnooze(n){const s=snoozed();if(s[n])delete s[n];else s[n]=true;store.set('ddg_snooze_v1',s);render();}
@@ -233,41 +264,31 @@ function statCards(){const fc=forecast(D.orders);
   ['Next shop',fc?('~'+money0(fc.amount)):'—',fc?('around '+fmtD(fc.next)):'need more data']];
   return '<div class="stats">'+st.map(s=>`<div class="stat"><div class="l">${s[0]}</div><div class="v">${s[1]}</div><div class="d">${s[2]}</div></div>`).join('')+'</div>';}
 function renderDash(){
-  const sn=snoozed();const burn=D.burn.map(withUrg);
-  const catset=Array.from(new Set(D.burn.map(b=>b.category)));
-  const tabs=['⭐ Staples','All',...catset.slice(0,6)];
-  if(!tabs.includes(state.tab))state.tab='⭐ Staples';
-  let list=state.tab==='⭐ Staples'?burn.filter(b=>b.staple):state.tab==='All'?burn.slice():burn.filter(b=>b.category===state.tab);
-  if(state.q)list=list.filter(b=>(b.name+' '+b.brand).toLowerCase().includes(state.q));
-  list.sort((a,b)=>{const sa=sn[a.name]?1:0,sb=sn[b.name]?1:0;if(sa!==sb)return sa-sb;if(a.staple!==b.staple)return b.staple-a.staple;return b.importance-a.importance;});
-  const need=list.filter(b=>!sn[b.name]&&b.pct>=100).slice(0,14);
-  const soon=list.filter(b=>!sn[b.name]&&b.pct>=70&&b.pct<100).slice(0,8);
-  const okv=list.filter(b=>!sn[b.name]&&b.pct<70).slice(0,6);
-  const snl=list.filter(b=>sn[b.name]).slice(0,6);
-  const compact=state.density==='compact';
-  const bar=b=>{const isn=!!sn[b.name];const rem=isn?100:Math.max(0,Math.min(100,100-b.pct));
-    let fill;if(isn)fill='rgba(191,90,242,.22)';else if(rem>=55)fill='rgba(32,213,171,.26)';else if(rem>=30)fill='rgba(255,214,10,.20)';else if(rem>0)fill='rgba(255,159,10,.22)';else fill='transparent';
-    const due=new Date(new Date(b.last_bought).getTime()+b.avg_days*86400000);
-    const right=isn?'next shop':(b.pct>=100?'top up':'≈ '+fmtD(due));
-    const cls=(b.pct>=100&&!isn)?'empty':'';
-    return `<div class="dbar ${cls} ${compact?'sm':''}"><i style="width:${rem}%;background:${fill}"></i><span class="lbl">${b.staple?'⭐ ':''}${b.name}</span><span class="rt">${right}</span><button class="snz" onclick="toggleSnooze('${b.name.replace(/'/g,"\\'")}')">${isn?'↺':'zZ'}</button></div>`;};
-  const group=(t,arr)=>arr.length?`<div class="ghead">${t} · ${arr.length}</div>`+arr.map(bar).join(''):'';
-  const chips=tabs.map(t=>`<div class="chip ${t===state.tab?'on':''}" onclick="state.tab='${t.replace(/'/g,"\\'")}';render()">${t}</div>`).join('');
+  const sn=snoozed();const burn=D.burn.map(withUrg).filter(b=>!sn[b.name]);
   const fc=forecast(D.orders);
-  const nextLine=fc?`<div class="next"><span class="material-symbols-outlined" style="color:var(--pri)">event_upcoming</span><div><div style="font-weight:700;font-size:15px">Next shop around ${fmtD(fc.next)}</div><div class="mut" style="font-size:12.5px">roughly ${money0(fc.amount)} · you shop about every ${fc.gap} days</div></div></div>`:'';
-  const insHtml=INSIGHTS?`<div class="insight">${INSIGHTS.text}</div>`:`<div class="mut" style="font-size:13px">Your weekly summary from Gemini shows here once its workflow is switched on in n8n.</div>`;
-  const mm=D.monthly.slice(-8);const maxm=Math.max(...mm.map(m=>m.spent),1);
-  const spark='<div class="spark">'+mm.map(m=>`<i style="height:${(m.spent/maxm*100)}%" title="${m.ym}: ${money0(m.spent)}"></i>`).join('')+'</div>';
-  $('#view').innerHTML=`<h1>Home</h1><div class="psub">${need.length?need.length+' to grab soon':'nothing urgent right now'} · next shop ${fc?fmtD(fc.next):'soon'}</div>
-  ${nextLine}
-  <div class="card"><h2><span class="material-symbols-outlined" style="color:var(--pri)">shopping_basket</span>What to restock</h2>
-   <div class="cs">Each bar empties as you get closer to buying it again.</div>
-   <div class="chips">${chips}</div>
-   ${group('Grab soon',need)}${group('Coming up',soon)}${group('Still good',okv)}${group('Snoozed',snl)}
-   ${!need.length&&!soon.length&&!okv.length?'<div class="mut" style="padding:12px 0">All stocked up here ✨</div>':''}
-  </div>
-  <div class="card"><h2><span class="material-symbols-outlined" style="color:var(--vio)">auto_awesome</span>This week</h2>${insHtml}</div>
-  <div class="card"><h2><span class="material-symbols-outlined" style="color:var(--pri)">trending_up</span>Spending</h2><div class="cs">last 8 months</div>${spark}<div class="mut" style="font-size:12px;margin-top:8px">Full breakdown &amp; numbers live in Order History.</div></div>`;
+  const lastReal=D.orders.find(o=>o.src!=='manual')||D.orders[0];const lastAmt=lastReal?lastReal.amt:0;
+  const amt=fc?fc.amount:0;const delta=Math.round(amt-lastAmt);
+  const dCol=delta<=0?'var(--pri)':'var(--over)';const dArr=delta<0?'south_east':delta>0?'north_east':'trending_flat';
+  const dTxt=!fc?'not enough history yet':delta<0?`about ${money0(-delta)} less than your last shop (${money0(lastAmt)})`:delta>0?`about ${money0(delta)} more than your last shop (${money0(lastAmt)})`:`about the same as last shop`;
+  const hero=`<div class="hero"><div class="hl">NEXT FORTNIGHTLY SHOP</div><div class="hamt">${fc?'~'+money0(amt):'—'}</div><div class="hd" style="color:${dCol}"><span class="material-symbols-outlined" style="font-size:18px">${dArr}</span> ${dTxt}</div><div class="mut" style="font-size:12.5px;margin-top:8px">${fc?'expected around '+fmtD(fc.next)+' · you shop about every '+fc.gap+' days':''}</div></div>`;
+  const compact=state.density==='compact';
+  const attn=burn.filter(b=>b.pct>=70);
+  const byCat={};attn.forEach(b=>{(byCat[b.category]=byCat[b.category]||[]).push(b);});
+  const cats=Object.entries(byCat).sort((a,b)=>{const oa=a[1].filter(i=>i.pct>=100).length,ob=b[1].filter(i=>i.pct>=100).length;return ob-oa||b[1].length-a[1].length;});
+  const bar=b=>{const rem=Math.max(0,Math.min(100,100-b.pct));let fill=rem>=55?'rgba(32,213,171,.26)':rem>=30?'rgba(255,214,10,.20)':rem>0?'rgba(255,159,10,.22)':'transparent';
+    const right=b.pct>=100?'top up':'≈ '+fmtD(new Date(new Date(b.last_bought).getTime()+b.avg_days*86400000));
+    return `<div class="dbar ${b.pct>=100?'empty':''} ${compact?'sm':''}"><i style="width:${rem}%;background:${fill}"></i><span class="ic">${iconFor(b.name)}</span><span class="lbl">${b.name}</span><span class="rt">${right}</span><button class="snz" onclick="event.stopPropagation();toggleSnooze('${b.name.replace(/'/g,"\\'")}')">zZ</button></div>`;};
+  const acc=cats.map(([cat,items])=>{const open=state.openCat===cat;const od=items.filter(i=>i.pct>=100).length;const cc=cat.replace(/'/g,"\\'");
+    return `<div class="acc ${open?'open':''}"><div class="acch" onclick="state.openCat=state.openCat==='${cc}'?null:'${cc}';render()"><span class="cico">${catIcon(cat)}</span><span class="cnm">${cat}</span><span class="cct">${items.length} item${items.length>1?'s':''}${od?` · <b>${od} due</b>`:''}</span><span class="material-symbols-outlined chev">expand_more</span></div><div class="accb">${items.sort((a,b)=>b.pct-a.pct).map(bar).join('')}</div></div>`;}).join('');
+  const restock=`<div class="card"><h2><span class="material-symbols-outlined" style="color:var(--pri)">shopping_basket</span>Time to restock</h2><div class="cs">Tap a category to see what's running low.</div>${acc||'<div class="mut" style="padding:12px 0">All stocked up ✨</div>'}</div>`;
+  const mm=D.monthly.slice(-10);
+  const rec=mm.slice(-3),pri=mm.slice(-6,-3);
+  const ra=rec.reduce((s,m)=>s+m.spent,0)/Math.max(rec.length,1),pa=pri.reduce((s,m)=>s+m.spent,0)/Math.max(pri.length,1);
+  const tr=pa?Math.round((ra-pa)/pa*100):0;const trTxt=!mm.length?'':Math.abs(tr)<6?'holding steady':tr>0?`trending up ~${tr}% vs earlier months`:`down ~${-tr}% — nice work`;
+  const trend=`<div class="card"><h2><span class="material-symbols-outlined" style="color:var(--blue)">insights</span>Monthly spend</h2><div class="cs">${trTxt}</div>${trendSvg(mm)}</div>`;
+  const insHtml=INSIGHTS?`<div class="insight">${INSIGHTS.text}</div>`:`<div class="mut" style="font-size:13px">Your weekly summary from Gemini shows here once its workflow is switched on.</div>`;
+  const ai=`<div class="card"><h2><span class="material-symbols-outlined" style="color:var(--vio)">auto_awesome</span>This week</h2>${insHtml}</div>`;
+  $('#view').innerHTML=`<h1>Home</h1><div class="psub">${attn.length} item${attn.length!==1?'s':''} to keep an eye on</div>${hero}${restock}${trend}${ai}`;
 }
 
 function renderInv(){
@@ -283,7 +304,7 @@ function renderInv(){
 }
 function renderOrd(){
   const mm=D.monthly;const maxm=Math.max(...mm.map(m=>m.spent));
-  const chart='<div class="mbar">'+mm.map(m=>`<div class="b"><i style="height:${(m.spent/maxm*100)}%" title="${money0(m.spent)}"></i><span>${m.ym.slice(2).replace('-','/')}</span></div>`).join('')+'</div>';
+  const chart=trendSvg(mm.slice(-14));
   let list=D.orders.slice();if(state.q)list=list.filter(o=>String(o.ordno).includes(state.q));
   const rows=list.map(o=>`<tr><td style="font-weight:600">${o.src==='manual'?(o.store||'Market'):'#'+o.ordno}</td><td>${fmtD(o.d)}</td><td>${o.items}</td><td style="font-weight:700">${money(o.amt)}</td><td><span class="pill ${o.src==='manual'?'due':'ok'}">${o.src==='manual'?'Manual':'Coles'}</span></td></tr>`).join('');
   const fc2=forecast(D.orders);const accCard=fc2?`<div class="card"><h2><span class="material-symbols-outlined" style="color:var(--blue)">query_stats</span>Forecast accuracy</h2><div class="cs">The next-shop model, tested against your actual recent shops</div><div class="fc"><div class="pillar"><div class="mut" style="font-size:11px">DATE ERROR</div><div class="big">±${fc2.dMae}d</div></div><div class="pillar"><div class="mut" style="font-size:11px">SPEND ERROR</div><div class="big">±${money0(fc2.aMae)}</div></div><div class="pillar"><div class="mut" style="font-size:11px">USUAL GAP</div><div class="big">${fc2.gap}d</div></div></div></div>`:'';
