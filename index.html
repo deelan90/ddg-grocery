@@ -207,8 +207,10 @@ function forecast(orders){
     aErr.push(Math.abs(amts[i]-median(pa)));
   }
   const g=median(gaps.slice(-8)),a=median(amts.slice(-6));
-  const next=new Date(dates[dates.length-1].getTime()+g*86400000);
-  return {next,amount:a,gap:Math.round(g),dMae:Math.round(median(dErr)||0),aMae:Math.round(median(aErr)||0),overdue:daysBetween(next,new Date())};
+  let next=new Date(dates[dates.length-1].getTime()+g*86400000);
+  const now=new Date();const origNext=new Date(next.getTime());
+  while(next<now)next=new Date(next.getTime()+g*86400000);
+  return {next,amount:a,gap:Math.round(g),dMae:Math.round(median(dErr)||0),aMae:Math.round(median(aErr)||0),overdue:daysBetween(origNext,now)};
 }
 /* ---------- state ---------- */
 const SEED_MANUAL=[
