@@ -111,8 +111,10 @@ input:focus{border-color:var(--pri)}
 .dbar.empty{border-color:rgba(255,159,10,.4)}
 .dbar.empty .rt{color:var(--over);font-weight:600}
 .dbar .snz{position:relative;z-index:1}
-.fab{position:fixed;right:18px;bottom:calc(22px + env(safe-area-inset-bottom));z-index:70;height:54px;border-radius:27px;background:linear-gradient(135deg,var(--pri),#0fae8b);color:#04241d;font-weight:800;border:none;display:flex;align-items:center;gap:8px;padding:0 20px;box-shadow:0 12px 34px rgba(32,213,171,.4);cursor:pointer;font-size:15px}
+.fab{position:fixed;right:16px;bottom:calc(18px + env(safe-area-inset-bottom));z-index:70;height:40px;border-radius:20px;background:linear-gradient(135deg,var(--pri),#0fae8b);color:#04241d;font-weight:700;border:none;display:flex;align-items:center;gap:5px;padding:0 14px;box-shadow:0 5px 16px rgba(32,213,171,.26);cursor:pointer;font-size:12.5px;opacity:.92}
+.fab:hover{opacity:1}
 .fab:active{transform:scale(.96)}
+.fab .material-symbols-outlined{font-size:17px}
 
 .hero{background:linear-gradient(150deg,rgba(32,213,171,.13),var(--card) 60%);border:1px solid var(--bd);border-radius:20px;padding:22px;margin-bottom:16px}
 .hero .hl{color:var(--mut);font-size:11px;letter-spacing:.1em;font-weight:600}
@@ -186,12 +188,27 @@ function deriveFromRaw(raw){
   const cm={};(raw.categories||[]).forEach(c=>{const k=canon(c.category);(cm[k]=cm[k]||{category:k,spent:0});cm[k].spent+=c.spent||0;});
   manual.forEach(m=>{const k='Fruit & Vegetables';(cm[k]=cm[k]||{category:k,spent:0});cm[k].spent+=m.total||0;});
   const cats=Object.values(cm).sort((a,b)=>b.spent-a.spent);
-  const burn=[];(raw.burndown||[]).forEach(b=>{const lb=b.last_bought?new Date(b.last_bought):null;const ad=b.avg_days;const seen=b.seen||0;
+  // Merge the same product bought online vs in-store (different product keys, same name) into one cadence.
+  const normName=n=>(n||'').toLowerCase().replace(/\s+/g,' ').trim();
+  const bgrp={};(raw.burndown||[]).forEach(b=>{if(!b.last_bought||!(b.avg_days>0))return;const k=normName(b.product_name);(bgrp[k]=bgrp[k]||[]).push(b);});
+  const bmergedRows=Object.values(bgrp).map(rows=>{
+    if(rows.length===1)return rows[0];
+    let last=-Infinity,first=Infinity,totalP=0,best=rows[0];
+    rows.forEach(r=>{const lb=new Date(r.last_bought).getTime(),ad=r.avg_days,seen=r.seen||0;
+      last=Math.max(last,lb);first=Math.min(first,lb-ad*86400000*seen);totalP+=seen+1;
+      if((r.seen||0)>=(best.seen||0))best=r;});
+    const ms=totalP-1,avg=ms>0?(last-first)/86400000/ms:best.avg_days;
+    return {product_name:best.product_name,category:best.category,brand:best.brand,seen:ms,avg_days:avg,last_bought:new Date(last).toISOString().slice(0,10)};});
+  const burn=[];bmergedRows.forEach(b=>{const lb=b.last_bought?new Date(b.last_bought):null;const ad=b.avg_days;const seen=b.seen||0;
     if(!lb||!ad||ad<=0||lb<cutoff)return;
     burn.push({name:b.product_name,brand:(b.brand||'').trim(),category:canon(b.category),seen,avg_days:Math.round(ad*10)/10,last_bought:b.last_bought,importance:Math.round(seen*(30/ad)*100)/100,staple:(seen>=15&&ad<=50)});});
   burn.sort((a,b)=>b.importance-a.importance);
-  const bmap={};(raw.burndown||[]).forEach(b=>bmap[b.product_name]=b);
-  const inv=(raw.catalog||[]).map(p=>{const b=bmap[p.product_name];const oc=p.orders_count||0;
+  const bmap={};bmergedRows.forEach(b=>bmap[normName(b.product_name)]=b);
+  const cgrp={};(raw.catalog||[]).forEach(p=>{const k=normName(p.product_name);(cgrp[k]=cgrp[k]||[]).push(p);});
+  const cmergedRows=Object.values(cgrp).map(rows=>{if(rows.length===1)return rows[0];
+    const best=rows.slice().sort((a,b)=>(b.orders_count||0)-(a.orders_count||0))[0];
+    return {product_name:best.product_name,category:best.category,brand:best.brand,orders_count:rows.reduce((s,r)=>s+(r.orders_count||0),0),total_spent:Math.round(rows.reduce((s,r)=>s+(r.total_spent||0),0)*100)/100,first_buy:rows.map(r=>r.first_buy).filter(Boolean).sort()[0],last_buy:rows.map(r=>r.last_buy).filter(Boolean).sort().slice(-1)[0]};});
+  const inv=cmergedRows.map(p=>{const b=bmap[normName(p.product_name)];const oc=p.orders_count||0;
     return {name:p.product_name,brand:(p.brand||'').trim(),category:canon(p.category),times:oc,avg_cost:Math.round((p.total_spent||0)/Math.max(oc,1)*100)/100,last_buy:p.last_buy,avg_days:(b&&b.avg_days)?Math.round(b.avg_days*10)/10:null};});
   inv.sort((a,b)=>b.times-a.times);
   let orders=(raw.orders||[]).map(o=>({...o,src:'coles'}));
