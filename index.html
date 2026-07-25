@@ -129,6 +129,18 @@ input:focus{border-color:var(--pri)}
 .accb{max-height:0;overflow:hidden;transition:max-height .35s ease}
 .acc.open .accb{max-height:3000px;padding-bottom:8px}
 .dbar .ic{position:relative;z-index:1;font-size:16px;width:20px;text-align:center}
+body[data-den="compact"] .card{padding:13px;margin-bottom:11px}
+body[data-den="compact"] .hero{padding:16px}
+body[data-den="compact"] .hero .hamt{font-size:38px}
+body[data-den="compact"] .acch{padding:9px 2px;gap:10px}
+body[data-den="compact"] .acch .cico{font-size:19px;width:22px}
+body[data-den="compact"] .acch .cnm{font-size:14px}
+body[data-den="compact"] .dbar{height:36px;margin-bottom:6px;gap:8px}
+body[data-den="compact"] .dbar .lbl{font-size:13px}
+body[data-den="compact"] .card h2{font-size:15px}
+body[data-den="cozy"] .card{padding:20px}
+body[data-den="cozy"] .acch{padding:16px 2px}
+body[data-den="cozy"] .dbar{height:50px;margin-bottom:10px}
 svg.trend{display:block;width:100%;height:auto}
 </style></head>
 <body>
@@ -240,6 +252,28 @@ function trendSvg(mm){if(!mm.length)return '<div class="mut">No data yet.</div>'
   const maxi=vals.indexOf(max);
   const lab=(i,a)=>`<text x="${X(i).toFixed(1)}" y="${h-5}" fill="#98989d" font-size="9" text-anchor="${a}">${mm[i].ym.slice(2).replace('-','/')}</text>`;
   return `<svg class="trend" viewBox="0 0 ${w} ${h}"><defs><linearGradient id="tg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#0a84ff" stop-opacity=".35"/><stop offset="1" stop-color="#0a84ff" stop-opacity="0"/></linearGradient></defs><path d="${area}" fill="url(#tg)"/><path d="${line}" fill="none" stroke="#0a84ff" stroke-width="2"/>${dots}<text x="${X(maxi).toFixed(1)}" y="${(Y(max)-6).toFixed(1)}" fill="#f5f5f7" font-size="9.5" font-weight="700" text-anchor="middle">$${Math.round(max)}</text>${lab(0,'start')}${lab(mm.length-1,'end')}</svg>`;}
+function fmtDM(d){d=new Date(d);return String(d.getDate()).padStart(2,'0')+'/'+String(d.getMonth()+1).padStart(2,'0');}
+function fortnightly(orders,n){
+  const os=(orders||[]).filter(o=>o&&o.amt).map(o=>({t:new Date(o.d).getTime(),a:+o.amt})).filter(o=>!isNaN(o.t)).sort((x,y)=>x.t-y.t);
+  if(!os.length)return [];
+  const FN=14*86400000,start=os[0].t,b={};
+  os.forEach(o=>{const i=Math.floor((o.t-start)/FN);b[i]=(b[i]||0)+o.a;});
+  const maxI=Math.floor((os[os.length-1].t-start)/FN),arr=[];
+  for(let i=0;i<=maxI;i++)arr.push({date:new Date(start+i*FN),spent:Math.round((b[i]||0)*100)/100});
+  return n?arr.slice(-n):arr;
+}
+function spendChart(series){
+  if(!series.length)return '<div class="mut">No data yet.</div>';
+  const w=340,h=152,pl=32,pr=8,pt=22,pb=26,iw=w-pl-pr,ih=h-pt-pb;
+  const vals=series.map(s=>s.spent),max=Math.max(...vals,1);
+  const bw=iw/series.length,bar=Math.min(bw*0.6,20),Y=v=>pt+ih*(1-v/max);
+  const bars=series.map((s,i)=>{const x=pl+i*bw+(bw-bar)/2,y=Y(s.spent);return `<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${bar.toFixed(1)}" height="${Math.max(0,pt+ih-y).toFixed(1)}" rx="2.5" fill="#0a84ff"/>`;}).join('');
+  const gl=[0,max/2,max].map(v=>{const y=Y(v);return `<line x1="${pl}" y1="${y.toFixed(1)}" x2="${w-pr}" y2="${y.toFixed(1)}" stroke="#2a2a2c" stroke-width="1"/><text x="${pl-5}" y="${(y+3).toFixed(1)}" fill="#8e8e93" font-size="9" text-anchor="end">$${Math.round(v)}</text>`;}).join('');
+  const idxs=[...new Set([0,Math.floor(series.length/2),series.length-1])];
+  const xl=idxs.map(i=>{const x=pl+i*bw+bw/2;return `<text x="${x.toFixed(1)}" y="${h-9}" fill="#8e8e93" font-size="9" text-anchor="middle">${fmtDM(series[i].date)}</text>`;}).join('');
+  const legend=`<rect x="${pl}" y="6" width="9" height="9" rx="2" fill="#0a84ff"/><text x="${pl+14}" y="14" fill="#98989d" font-size="10">Spend per fortnight</text>`;
+  return `<svg class="trend" viewBox="0 0 ${w} ${h}">${gl}${bars}${xl}${legend}</svg>`;
+}
 let RAW=JSON.parse(document.getElementById('d').textContent);
 let D=deriveFromRaw(RAW);
 let state={view:'dash',tab:'⭐ Staples',invCat:'All',q:'',openCat:null,density:store.get('density','cozy')};
@@ -254,7 +288,7 @@ function openD(o){drawer.classList.toggle('on',o);scrim.classList.toggle('on',o)
 $('#burger').onclick=()=>openD(!drawer.classList.contains('on'));
 scrim.onclick=()=>openD(false);
 document.querySelectorAll('.drawer a').forEach(a=>a.onclick=()=>{state.view=a.dataset.v;document.querySelectorAll('.drawer a').forEach(x=>x.classList.toggle('on',x===a));openD(false);render();window.scrollTo(0,0);});
-function setDen(d){state.density=d;store.set('density',d);$('#denC').classList.toggle('on',d==='compact');$('#denZ').classList.toggle('on',d==='cozy');render();}
+function setDen(d){state.density=d;store.set('density',d);document.body.dataset.den=d;$('#denC').classList.toggle('on',d==='compact');$('#denZ').classList.toggle('on',d==='cozy');render();}
 $('#denC').onclick=()=>setDen('compact');$('#denZ').onclick=()=>setDen('cozy');
 $('#refresh').onclick=()=>loadLive(true);
 $('#fab').onclick=()=>{state.view='add';document.querySelectorAll('.drawer a').forEach(x=>x.classList.toggle('on',x.dataset.v==='add'));render();window.scrollTo(0,0);};
@@ -267,8 +301,10 @@ function statCards(){const fc=forecast(D.orders);
   return '<div class="stats">'+st.map(s=>`<div class="stat"><div class="l">${s[0]}</div><div class="v">${s[1]}</div><div class="d">${s[2]}</div></div>`).join('')+'</div>';}
 function renderDash(){
   const sn=snoozed();const burn=D.burn.map(withUrg).filter(b=>!sn[b.name]);
-  const fc=forecast(D.orders);
-  const lastReal=D.orders.find(o=>o.src!=='manual')||D.orders[0];const lastAmt=lastReal?lastReal.amt:0;
+  // Hero forecast = the big planned online shop only; in-store top-ups are excluded so the fortnightly number stays meaningful.
+  const online=D.orders.filter(o=>o.src==='coles'&&!String(o.ordno||'').toUpperCase().startsWith('INSTORE'));
+  const fc=forecast(online.length>=6?online:D.orders);
+  const lastReal=online.slice().sort((a,b)=>new Date(b.d)-new Date(a.d))[0]||D.orders.find(o=>o.src!=='manual')||D.orders[0];const lastAmt=lastReal?lastReal.amt:0;
   const amt=fc?fc.amount:0;const delta=Math.round(amt-lastAmt);
   const dCol=delta<=0?'var(--pri)':'var(--over)';const dArr=delta<0?'south_east':delta>0?'north_east':'trending_flat';
   const dTxt=!fc?'not enough history yet':delta<0?`about ${money0(-delta)} less than your last shop (${money0(lastAmt)})`:delta>0?`about ${money0(delta)} more than your last shop (${money0(lastAmt)})`:`about the same as last shop`;
@@ -283,11 +319,11 @@ function renderDash(){
   const acc=cats.map(([cat,items])=>{const open=state.openCat===cat;const od=items.filter(i=>i.pct>=100).length;const cc=cat.replace(/'/g,"\\'");
     return `<div class="acc ${open?'open':''}"><div class="acch" onclick="state.openCat=state.openCat==='${cc}'?null:'${cc}';render()"><span class="cico">${catIcon(cat)}</span><span class="cnm">${cat}</span><span class="cct">${items.length} item${items.length>1?'s':''}${od?` · <b>${od} due</b>`:''}</span><span class="material-symbols-outlined chev">expand_more</span></div><div class="accb">${items.sort((a,b)=>b.pct-a.pct).map(bar).join('')}</div></div>`;}).join('');
   const restock=`<div class="card"><h2><span class="material-symbols-outlined" style="color:var(--pri)">shopping_basket</span>Time to restock</h2><div class="cs">Tap a category to see what's running low.</div>${acc||'<div class="mut" style="padding:12px 0">All stocked up ✨</div>'}</div>`;
-  const mm=D.monthly.slice(-10);
-  const rec=mm.slice(-3),pri=mm.slice(-6,-3);
+  const fn=fortnightly(D.orders,14);
+  const rec=fn.slice(-3),pri=fn.slice(-6,-3);
   const ra=rec.reduce((s,m)=>s+m.spent,0)/Math.max(rec.length,1),pa=pri.reduce((s,m)=>s+m.spent,0)/Math.max(pri.length,1);
-  const tr=pa?Math.round((ra-pa)/pa*100):0;const trTxt=!mm.length?'':Math.abs(tr)<6?'holding steady':tr>0?`trending up ~${tr}% vs earlier months`:`down ~${-tr}% — nice work`;
-  const trend=`<div class="card"><h2><span class="material-symbols-outlined" style="color:var(--blue)">insights</span>Monthly spend</h2><div class="cs">${trTxt}</div>${trendSvg(mm)}</div>`;
+  const tr=pa?Math.round((ra-pa)/pa*100):0;const trTxt=!fn.length?'':Math.abs(tr)<6?'holding steady':tr>0?`trending up ~${tr}% vs earlier fortnights`:`down ~${-tr}% — nice work`;
+  const trend=`<div class="card"><h2><span class="material-symbols-outlined" style="color:var(--blue)">insights</span>Fortnightly spend</h2><div class="cs">${trTxt}</div>${spendChart(fn)}</div>`;
   const insHtml=INSIGHTS?`<div class="insight">${INSIGHTS.text}</div>`:`<div class="mut" style="font-size:13px">Your weekly summary from Gemini shows here once its workflow is switched on.</div>`;
   const ai=`<div class="card"><h2><span class="material-symbols-outlined" style="color:var(--vio)">auto_awesome</span>This week</h2>${insHtml}</div>`;
   $('#view').innerHTML=`<h1>Home</h1><div class="psub">${attn.length} item${attn.length!==1?'s':''} to keep an eye on</div>${hero}${restock}${trend}${ai}`;
