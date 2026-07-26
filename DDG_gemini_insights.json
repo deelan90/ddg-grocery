@@ -1,0 +1,179 @@
+{
+  "name": "DDG \u2014 Weekly Gemini Insights",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "weeks",
+              "weeksInterval": 1,
+              "triggerAtDay": [
+                1
+              ],
+              "triggerAtHour": 8
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        0
+      ],
+      "name": "Monday 8am"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT json_build_object('stats',(SELECT row_to_json(s) FROM (SELECT count(*) AS orders, round(sum(total_amount),2) AS total_spent, round(avg(total_amount),2) AS avg_order, max(order_date)::date AS last_order FROM orders) s),'burndown',(SELECT json_agg(b) FROM (SELECT cm.product_name, cm.observed_intervals AS seen, cm.last_purchased::date AS last_bought, round(cm.avg_days_between,1) AS avg_days, round(cm.days_until_depletion,1) AS days_left FROM consumption_metrics cm WHERE cm.observed_intervals>=3 ORDER BY cm.days_until_depletion ASC LIMIT 40) b),'recent',(SELECT json_agg(r) FROM (SELECT o.order_date::date AS d, o.total_amount AS amt FROM orders o ORDER BY o.order_date DESC LIMIT 10) r),'monthly',(SELECT json_agg(m) FROM (SELECT to_char(date_trunc('month',order_date),'YYYY-MM') AS ym, round(sum(total_amount),2) AS spent FROM orders GROUP BY 1 ORDER BY 1 DESC LIMIT 6) m)) AS data;",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        220,
+        0
+      ],
+      "name": "Query warehouse",
+      "notes": "Select your 'Postgres account' credential."
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "const d=$json.data;\nconst prompt=`You are the household grocery assistant for \"Double D Grocery\" (a two-person household in Brisbane that shops Coles online roughly fortnightly).\nAnalyse this JSON of their purchase warehouse and write a short, friendly weekly snapshot (max 180 words, plain text, no markdown headings).\nCover: 1) items likely running out soon (use avg purchase cycles; today is ${new Date().toISOString().slice(0,10)}), 2) predicted date and cost of the next shop, 3) one spending trend worth knowing, 4) one practical suggestion.\nUse dd-mm-yy dates and AUD. Be specific with product names and numbers, warm but concise.\nDATA: ${JSON.stringify(d)}`;\nreturn [{json:{contents:[{parts:[{text:prompt}]}]}}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        440,
+        0
+      ],
+      "name": "Build prompt"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json) }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        660,
+        0
+      ],
+      "name": "Gemini",
+      "notes": "Create a Header Auth credential: Name = x-goog-api-key, Value = your Gemini API key (aistudio.google.com/apikey). Free tier is plenty for weekly."
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "const t=$json.candidates?.[0]?.content?.parts?.[0]?.text || 'No insight generated.';\nreturn [{json:{generated:new Date().toISOString().slice(0,10),text:t.trim()}}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        880,
+        0
+      ],
+      "name": "Wrap insight"
+    },
+    {
+      "parameters": {
+        "resource": "file",
+        "operation": "edit",
+        "owner": {
+          "__rl": true,
+          "value": "deelan90",
+          "mode": "name"
+        },
+        "repository": {
+          "__rl": true,
+          "value": "ddg-grocery",
+          "mode": "name"
+        },
+        "filePath": "insights.json",
+        "fileContent": "={{ JSON.stringify($json) }}",
+        "commitMessage": "Weekly AI insights"
+      },
+      "type": "n8n-nodes-base.github",
+      "typeVersion": 1.1,
+      "position": [
+        1100,
+        0
+      ],
+      "name": "Publish to app",
+      "notes": "Reuse the same GitHub credential as the data-push workflow. The app reads insights.json automatically."
+    }
+  ],
+  "connections": {
+    "Monday 8am": {
+      "main": [
+        [
+          {
+            "node": "Query warehouse",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Query warehouse": {
+      "main": [
+        [
+          {
+            "node": "Build prompt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build prompt": {
+      "main": [
+        [
+          {
+            "node": "Gemini",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gemini": {
+      "main": [
+        [
+          {
+            "node": "Wrap insight",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wrap insight": {
+      "main": [
+        [
+          {
+            "node": "Publish to app",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {}
+}
