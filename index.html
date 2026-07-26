@@ -142,6 +142,15 @@ input:focus{border-color:var(--pri)}
 .pnow{color:var(--pri);font-weight:700}
 .pwas{color:var(--mut);text-decoration:line-through;margin-left:5px;font-size:.86em}
 .dbar .pr{position:relative;z-index:1;font-size:11.5px;white-space:nowrap;margin-left:4px}
+.insintro{color:var(--mut);font-size:13px;margin-bottom:12px}
+.insrow{display:flex;gap:11px;padding:11px 0;border-top:1px solid #202022}
+.insrow:first-of-type{border-top:none;padding-top:2px}
+.insico{color:var(--vio);font-size:20px;margin-top:1px;flex-shrink:0}
+.instxt{flex:1;min-width:0}
+.institle{font-weight:700;font-size:12.5px;letter-spacing:.01em;margin-bottom:2px}
+.insbody{font-size:13.5px;line-height:1.5;color:#d8d8dc}
+.insdate{color:var(--mut);font-size:11px;margin-top:12px;text-align:right}
+body[data-den="compact"] .insrow{padding:8px 0}
 .snz.done{color:var(--pri);border-color:rgba(32,213,171,.45)}
 .lnk{display:flex;align-items:center;gap:12px;cursor:pointer}
 .lcat{margin-bottom:14px}
@@ -318,6 +327,32 @@ function spendChart(series){
   const legend=`<rect x="${pl}" y="6" width="9" height="9" rx="2" fill="#0a84ff"/><text x="${pl+14}" y="14" fill="#98989d" font-size="10">Spend per fortnight</text>`;
   return `<svg class="trend" viewBox="0 0 ${w} ${h}">${gl}${bars}${xl}${legend}</svg>`;
 }
+function insIcon(s){s=(s||'').toLowerCase();
+  if(/run(ning)?\s*(out|low)|deplet|restock|stock|basket/.test(s))return 'shopping_basket';
+  if(/next\s*(shop|order)|predict|expected|upcoming|fortnight/.test(s))return 'event';
+  if(/spend|trend|budget|per month|dropped|cost|saving/.test(s))return 'trending_down';
+  if(/suggest|tip|recommend|adding|consider|try|idea/.test(s))return 'lightbulb';
+  return 'chevron_right';}
+function insTitle(body){const s=(body||'').toLowerCase();
+  if(/run(ning)?\s*(out|low)|deplet|likely (low|running)/.test(s))return 'Running low';
+  if(/next\s*(shop|order)|predict|expected around|upcoming (shop|order)/.test(s))return 'Next shop';
+  if(/spend|trend|budget|per month|dropped|increase|expenses/.test(s))return 'Spending trend';
+  if(/suggest|tip|recommend|adding|consider|try/.test(s))return 'Tip';
+  return '';}
+function fmtInsight(text){
+  if(!text)return '';
+  let t=String(text).replace(/\r/g,'').replace(/\*\*/g,'').trim();
+  let paras=t.split(/\n\s*\n/).map(s=>s.trim()).filter(Boolean);
+  if(paras.length<3)paras=t.split(/\n/).map(s=>s.trim()).filter(Boolean);
+  let intro='';const rows=[];
+  paras.forEach((p,i)=>{
+    if(i===0 && /hello|snapshot|here.{0,3}s your|weekly/i.test(p) && p.length<130 && !/:/.test(p.slice(0,26))){intro=p;return;}
+    let title='',body=p;const m=p.match(/^([A-Z][A-Za-z '&\/-]{1,26}?):\s+([\s\S]+)$/);
+    if(m){title=m[1].trim();body=m[2].trim();}else{title=insTitle(p);}
+    rows.push(`<div class="insrow"><span class="material-symbols-outlined insico">${insIcon(title+' '+body)}</span><div class="instxt">${title?`<div class="institle">${title}</div>`:''}<div class="insbody">${body}</div></div></div>`);
+  });
+  return (intro?`<div class="insintro">${intro}</div>`:'')+rows.join('');
+}
 let RAW=JSON.parse(document.getElementById('d').textContent);
 let D=deriveFromRaw(RAW);
 let state={view:'dash',tab:'⭐ Staples',invCat:'All',q:'',openCat:null,density:store.get('density','cozy')};
@@ -375,7 +410,7 @@ function renderDash(){
   const ra=rec.reduce((s,m)=>s+m.spent,0)/Math.max(rec.length,1),pa=pri.reduce((s,m)=>s+m.spent,0)/Math.max(pri.length,1);
   const tr=pa?Math.round((ra-pa)/pa*100):0;const trTxt=!fn.length?'':Math.abs(tr)<6?'holding steady':tr>0?`trending up ~${tr}% vs earlier fortnights`:`down ~${-tr}% — nice work`;
   const trend=`<div class="card"><h2><span class="material-symbols-outlined" style="color:var(--blue)">insights</span>Fortnightly spend</h2><div class="cs">${trTxt}</div>${spendChart(fn)}</div>`;
-  const insHtml=INSIGHTS?`<div class="insight">${INSIGHTS.text}</div>`:`<div class="mut" style="font-size:13px">Your weekly summary from Gemini shows here once its workflow is switched on.</div>`;
+  const insHtml=(INSIGHTS&&INSIGHTS.generated)?`${fmtInsight(INSIGHTS.text)}<div class="insdate">updated ${fmtD(INSIGHTS.generated)}</div>`:`<div class="mut" style="font-size:13px">Your weekly summary from Gemini shows here once its workflow is switched on.</div>`;
   const ai=`<div class="card"><h2><span class="material-symbols-outlined" style="color:var(--vio)">auto_awesome</span>This week</h2>${insHtml}</div>`;
   const dueCount=attn.filter(b=>b.pct>=85).length;
   const listLink=`<div class="card lnk" onclick="go('list')"><span class="material-symbols-outlined" style="color:var(--pri);font-size:24px">checklist</span><div style="flex:1"><div style="font-weight:700">Shopping list</div><div class="mut" style="font-size:12.5px">${dueCount} item${dueCount!==1?'s':''} due · tap to build & tick off</div></div><span class="material-symbols-outlined" style="color:var(--mut)">chevron_right</span></div>`;
