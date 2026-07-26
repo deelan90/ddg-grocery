@@ -2,6 +2,13 @@
 <html lang="en"><head>
 <meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
 <title>Double D Grocery</title>
+<meta name="theme-color" content="#000000"/>
+<link rel="manifest" href="manifest.webmanifest"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="apple-mobile-web-app-title" content="Double D"/>
+<link rel="apple-touch-icon" href="icon-180.png"/>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/>
 <style>
@@ -135,6 +142,20 @@ input:focus{border-color:var(--pri)}
 .pnow{color:var(--pri);font-weight:700}
 .pwas{color:var(--mut);text-decoration:line-through;margin-left:5px;font-size:.86em}
 .dbar .pr{position:relative;z-index:1;font-size:11.5px;white-space:nowrap;margin-left:4px}
+.snz.done{color:var(--pri);border-color:rgba(32,213,171,.45)}
+.lnk{display:flex;align-items:center;gap:12px;cursor:pointer}
+.lcat{margin-bottom:14px}
+.lcath{font-size:12px;letter-spacing:.03em;text-transform:uppercase;color:var(--mut);font-weight:700;display:flex;align-items:center;gap:8px;margin:4px 2px 8px}
+.lcath .cico{font-size:16px}
+.lrow{display:flex;align-items:center;gap:11px;padding:11px 4px;border-bottom:1px solid #202022;cursor:pointer}
+.lrow:last-child{border-bottom:none}
+.lrow .lck{color:var(--mut);font-size:22px}
+.lrow.ck .lck{color:var(--pri)}
+.lrow.ck .lnm{text-decoration:line-through;color:var(--mut)}
+.lrow .ic{font-size:17px;width:22px;text-align:center}
+.lrow .lnm{flex:1;font-weight:600;font-size:14.5px;letter-spacing:-.1px}
+.lrow .lpr{font-size:12px;white-space:nowrap}
+body[data-den="compact"] .lrow{padding:8px 4px}
 body[data-den="compact"] .card{padding:13px;margin-bottom:11px}
 body[data-den="compact"] .hero{padding:16px}
 body[data-den="compact"] .hero .hamt{font-size:38px}
@@ -162,6 +183,7 @@ svg.trend{display:block;width:100%;height:auto}
 <nav class="drawer" id="drawer">
   <div class="dh"><div class="brand"><div class="mk">DD</div>Double D Grocery</div></div>
   <a data-v="dash" class="on"><span class="material-symbols-outlined">dashboard</span>Dashboard</a>
+  <a data-v="list"><span class="material-symbols-outlined">checklist</span>Shopping List</a>
   <a data-v="inv"><span class="material-symbols-outlined">inventory_2</span>Inventory</a>
   <a data-v="ord"><span class="material-symbols-outlined">receipt_long</span>Order History</a>
   <a data-v="add"><span class="material-symbols-outlined">add_circle</span>Add Shop</a>
@@ -306,13 +328,16 @@ function priceFor(name){const p=PRICEMAP[gnorm(name)];return p||null;}
 function priceTag(name){const p=priceFor(name);if(!p)return '';const sp=p.was&&p.was>p.now;return `<span class="pnow">${money(p.now)}</span>${sp?`<span class="pwas">${money(p.was)}</span>`:''}`;}
 function snoozed(){return store.get('ddg_snooze_v1',{})}
 function toggleSnooze(n){const s=snoozed();if(s[n])delete s[n];else s[n]=true;store.set('ddg_snooze_v1',s);render();}
-function withUrg(b){const lb=new Date(b.last_bought);const ds=daysBetween(lb,new Date());const pct=b.avg_days>0?ds/b.avg_days*100:0;return {...b,ds,pct:Math.round(pct*10)/10,over:ds-Math.round(b.avg_days)};}
+function restocked(){return store.get('ddg_restocked_v1',{})}
+function markBought(n){const s=restocked();s[n]=new Date().toISOString().slice(0,10);store.set('ddg_restocked_v1',s);render();}
+function withUrg(b){const rb=restocked()[b.name];const base=new Date(b.last_bought);const eff=(rb&&new Date(rb)>base)?new Date(rb):base;const ds=daysBetween(eff,new Date());const pct=b.avg_days>0?ds/b.avg_days*100:0;return {...b,ds,pct:Math.round(pct*10)/10,over:ds-Math.round(b.avg_days),reset:!!(rb&&new Date(rb)>base)};}
 function segColor(p){return p>=200?'var(--crit)':p>=100?'var(--over)':p>=75?'var(--due)':'var(--ok)';}
 /* ---------- nav ---------- */
 const drawer=$('#drawer'),scrim=$('#scrim');
 function openD(o){drawer.classList.toggle('on',o);scrim.classList.toggle('on',o);}
 $('#burger').onclick=()=>openD(!drawer.classList.contains('on'));
 scrim.onclick=()=>openD(false);
+function go(v){state.view=v;document.querySelectorAll('.drawer a').forEach(x=>x.classList.toggle('on',x.dataset.v===v));openD(false);render();window.scrollTo(0,0);}
 document.querySelectorAll('.drawer a').forEach(a=>a.onclick=()=>{state.view=a.dataset.v;document.querySelectorAll('.drawer a').forEach(x=>x.classList.toggle('on',x===a));openD(false);render();window.scrollTo(0,0);});
 function setDen(d){state.density=d;store.set('density',d);document.body.dataset.den=d;$('#denC').classList.toggle('on',d==='compact');$('#denZ').classList.toggle('on',d==='cozy');render();}
 $('#denC').onclick=()=>setDen('compact');$('#denZ').onclick=()=>setDen('cozy');
@@ -341,7 +366,7 @@ function renderDash(){
   const cats=Object.entries(byCat).sort((a,b)=>{const oa=a[1].filter(i=>i.pct>=100).length,ob=b[1].filter(i=>i.pct>=100).length;return ob-oa||b[1].length-a[1].length;});
   const bar=b=>{const rem=Math.max(0,Math.min(100,100-b.pct));let fill=rem>=55?'rgba(32,213,171,.26)':rem>=30?'rgba(255,214,10,.20)':rem>0?'rgba(255,159,10,.22)':'transparent';
     const right=b.pct>=100?'top up':'≈ '+fmtD(new Date(new Date(b.last_bought).getTime()+b.avg_days*86400000));
-    return `<div class="dbar ${b.pct>=100?'empty':''} ${compact?'sm':''}"><i style="width:${rem}%;background:${fill}"></i><span class="ic">${iconFor(b.name)}</span><span class="lbl">${b.name}</span><span class="rt">${right}</span>${priceFor(b.name)?`<span class="pr">${priceTag(b.name)}</span>`:''}<button class="snz" onclick="event.stopPropagation();toggleSnooze('${b.name.replace(/'/g,"\\'")}')">zZ</button></div>`;};
+    return `<div class="dbar ${b.pct>=100?'empty':''} ${compact?'sm':''}"><i style="width:${rem}%;background:${fill}"></i><span class="ic">${iconFor(b.name)}</span><span class="lbl">${b.name}</span><span class="rt">${right}</span>${priceFor(b.name)?`<span class="pr">${priceTag(b.name)}</span>`:''}<button class="snz done" title="Mark as bought" onclick="event.stopPropagation();markBought('${b.name.replace(/'/g,"\\'")}')">✓</button><button class="snz" title="Snooze" onclick="event.stopPropagation();toggleSnooze('${b.name.replace(/'/g,"\\'")}')">zZ</button></div>`;};
   const acc=cats.map(([cat,items])=>{const open=state.openCat===cat;const od=items.filter(i=>i.pct>=100).length;const cc=cat.replace(/'/g,"\\'");
     return `<div class="acc ${open?'open':''}"><div class="acch" onclick="state.openCat=state.openCat==='${cc}'?null:'${cc}';render()"><span class="cico">${catIcon(cat)}</span><span class="cnm">${cat}</span><span class="cct">${items.length} item${items.length>1?'s':''}${od?` · <b>${od} due</b>`:''}</span><span class="material-symbols-outlined chev">expand_more</span></div><div class="accb">${items.sort((a,b)=>b.pct-a.pct).map(bar).join('')}</div></div>`;}).join('');
   const restock=`<div class="card"><h2><span class="material-symbols-outlined" style="color:var(--pri)">shopping_basket</span>Time to restock</h2><div class="cs">Tap a category to see what's running low.</div>${acc||'<div class="mut" style="padding:12px 0">All stocked up ✨</div>'}</div>`;
@@ -352,7 +377,11 @@ function renderDash(){
   const trend=`<div class="card"><h2><span class="material-symbols-outlined" style="color:var(--blue)">insights</span>Fortnightly spend</h2><div class="cs">${trTxt}</div>${spendChart(fn)}</div>`;
   const insHtml=INSIGHTS?`<div class="insight">${INSIGHTS.text}</div>`:`<div class="mut" style="font-size:13px">Your weekly summary from Gemini shows here once its workflow is switched on.</div>`;
   const ai=`<div class="card"><h2><span class="material-symbols-outlined" style="color:var(--vio)">auto_awesome</span>This week</h2>${insHtml}</div>`;
-  $('#view').innerHTML=`<h1>Home</h1><div class="psub">${attn.length} item${attn.length!==1?'s':''} to keep an eye on</div>${hero}${restock}${trend}${ai}`;
+  const dueCount=attn.filter(b=>b.pct>=85).length;
+  const listLink=`<div class="card lnk" onclick="go('list')"><span class="material-symbols-outlined" style="color:var(--pri);font-size:24px">checklist</span><div style="flex:1"><div style="font-weight:700">Shopping list</div><div class="mut" style="font-size:12.5px">${dueCount} item${dueCount!==1?'s':''} due · tap to build & tick off</div></div><span class="material-symbols-outlined" style="color:var(--mut)">chevron_right</span></div>`;
+  const specials=D.burn.map(b=>{const p=priceFor(b.name);return (p&&p.was>p.now)?{name:b.name,now:p.now,was:p.was,save:p.was-p.now}:null;}).filter(Boolean).sort((a,b)=>b.save-a.save).slice(0,5);
+  const specHtml=specials.length?`<div class="card"><h2><span class="material-symbols-outlined" style="color:var(--pri)">sell</span>On special now</h2><div class="cs">${specials.length} of your regulars ${specials.length===1?'is':'are'} marked down</div>${specials.map(s=>`<div class="dbar"><span class="ic">${iconFor(s.name)}</span><span class="lbl">${s.name}</span><span class="pr"><span class="pnow">${money(s.now)}</span><span class="pwas">${money(s.was)}</span></span></div>`).join('')}</div>`:'';
+  $('#view').innerHTML=`<h1>Home</h1><div class="psub">${attn.length} item${attn.length!==1?'s':''} to keep an eye on</div>${hero}${listLink}${restock}${specHtml}${trend}${ai}`;
 }
 
 function renderInv(){
@@ -424,11 +453,26 @@ function renderSet(){
   ${snl.length?snl.map(n=>`<div class="setrow"><span style="font-weight:600;font-size:13.5px">${n}</span><button class="snz" onclick="toggleSnooze('${n.replace(/'/g,"\\'")}')">Un-snooze</button></div>`).join(''):'<div class="mut">Nothing snoozed.</div>'}
   </div></div>`;
 }
+function toggleCheck(n){const c=store.get('ddg_list_checked',{});if(c[n])delete c[n];else c[n]=true;store.set('ddg_list_checked',c);render();}
+function finishShop(){const c=store.get('ddg_list_checked',{});const r=restocked();const t=new Date().toISOString().slice(0,10);Object.keys(c).forEach(n=>{r[n]=t;});store.set('ddg_restocked_v1',r);store.set('ddg_list_checked',{});render();}
+function renderList(){
+  const checked=store.get('ddg_list_checked',{});const sn=snoozed();
+  const items=D.burn.map(withUrg).filter(b=>!sn[b.name]&&b.pct>=85).sort((a,b)=>b.pct-a.pct);
+  const byCat={};items.forEach(b=>{(byCat[b.category]=byCat[b.category]||[]).push(b);});
+  const cats=Object.entries(byCat).sort((a,b)=>b[1].length-a[1].length);
+  let priced=0,total=0,unchecked=0;
+  items.forEach(b=>{if(!checked[b.name]){unchecked++;const p=priceFor(b.name);if(p){priced++;total+=p.now;}}});
+  const rows=cats.map(([cat,list])=>`<div class="lcat"><div class="lcath"><span class="cico">${catIcon(cat)}</span>${cat}</div>${list.map(b=>{const ck=!!checked[b.name];const p=priceFor(b.name);
+    return `<div class="lrow ${ck?'ck':''}" onclick="toggleCheck('${b.name.replace(/'/g,"\\'")}')"><span class="lck material-symbols-outlined">${ck?'check_circle':'radio_button_unchecked'}</span><span class="ic">${iconFor(b.name)}</span><span class="lnm">${b.name}</span>${p?`<span class="lpr">${priceTag(b.name)}</span>`:''}</div>`;}).join('')}</div>`).join('');
+  const hero=`<div class="hero"><div class="hl">SHOPPING LIST</div><div class="hamt">${unchecked} item${unchecked!==1?'s':''}</div><div class="hd" style="color:var(--pri)"><span class="material-symbols-outlined" style="font-size:18px">shopping_cart_checkout</span> estimated ${money(total)}${priced<unchecked?` · <span class="mut" style="font-weight:400">${priced} of ${unchecked} priced</span>`:''}</div><div class="mut" style="font-size:12.5px;margin-top:8px">Prices refresh from your DDG Price bookmarklet</div></div>`;
+  const doneBtn=items.some(b=>checked[b.name])?`<button class="btn" style="width:100%;margin-top:12px" onclick="finishShop()">Done — mark ticked items as bought</button>`:'';
+  $('#view').innerHTML=`<h1>Shopping List</h1><div class="psub">what's due, from your buying cycles</div>${hero}<div class="card">${rows||'<div class="mut" style="padding:12px 0">Nothing due right now ✨</div>'}${doneBtn}</div>`;
+}
 function render(){
   document.getElementById('fab').style.display=(state.view==='add')?'none':'flex';
   $('#fdates').textContent=fmtD(D.stats.first_order)+' – '+fmtD(D.stats.last_order);
   const v=state.view;
-  if(v==='dash')renderDash();else if(v==='inv')renderInv();else if(v==='ord')renderOrd();else if(v==='add')renderAdd();else renderSet();
+  if(v==='dash')renderDash();else if(v==='list')renderList();else if(v==='inv')renderInv();else if(v==='ord')renderOrd();else if(v==='add')renderAdd();else renderSet();
 }
 async function loadLive(force){
   try{const r=await fetch(LIVE_ENDPOINT+'?t='+Date.now(),{cache:'no-store'});if(r.ok){const j=await r.json();RAW=j.data||j;D=deriveFromRaw(RAW);}}catch(e){}
@@ -437,4 +481,5 @@ async function loadLive(force){
   render();syncManual();
 }
 setDen(state.density);loadLive();
+if('serviceWorker' in navigator){window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));}
 </script></body></html>
