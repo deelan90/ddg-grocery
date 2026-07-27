@@ -377,11 +377,13 @@ function fmtInsight(text){
   let t=String(text).replace(/\r/g,'').replace(/\*\*/g,'')
     .replace(/\s*\((?=[^)]*\d)(?=[^)]*(?:order|cycle|day|average|per week|per month))[^)]*\)/gi,'')
     .replace(/\s{2,}/g,' ').replace(/\s+([,.;:])/g,'$1').replace(/,\s*,/g,',').trim();
-  let paras=t.split(/\n\s*\n/).map(s=>s.trim()).filter(Boolean);
-  if(paras.length<3)paras=t.split(/\n/).map(s=>s.trim()).filter(Boolean);
-  let intro='';const rows=[];
-  paras.forEach((p,i)=>{
-    if(i===0 && /hello|snapshot|here.{0,3}s your|weekly/i.test(p) && p.length<130 && !/:/.test(p.slice(0,26))){intro=p;return;}
+  let intro='';const gm=t.match(/^.*?snapshot for [0-9-]+\.\s*/i);
+  if(gm){intro=gm[0].trim();t=t.slice(gm[0].length).trim();}
+  else{const hm=t.match(/^\s*hello\b[^.!?]*[.!?]\s*/i);if(hm){intro=hm[0].trim();t=t.slice(hm[0].length).trim();}}
+  t=t.replace(/\s+(Spending trend:|Practical suggestion:|Practical tip:|Suggestion:|Tip:|Next shop:|Running low:)/gi,'\n$1').replace(/([.!])\s+(We predict|Your next (?:major |fortnightly )?)/gi,'$1\n$2');
+  let paras=t.split(/\n\s*\n|\n/).map(s=>s.trim()).filter(Boolean);
+  const rows=[];
+  paras.forEach(p=>{
     let title='',body=p;const m=p.match(/^([A-Z][A-Za-z '&\/-]{1,26}?):\s+([\s\S]+)$/);
     if(m){title=m[1].trim();body=m[2].trim();}else{title=insTitle(p);}
     rows.push(`<div class="insrow"><span class="material-symbols-outlined insico">${insIcon(title+' '+body)}</span><div class="instxt">${title?`<div class="institle">${title}</div>`:''}<div class="insbody">${body}</div></div></div>`);
