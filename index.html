@@ -208,6 +208,185 @@ body[data-den="cozy"] .card{padding:20px}
 body[data-den="cozy"] .acch{padding:16px 2px}
 body[data-den="cozy"] .dbar{height:50px;margin-bottom:10px}
 svg.trend{display:block;width:100%;height:auto}
+/* ============================================================
+   v4 — BOLD MODERN REFRESH
+   Layered on top of the base sheet; restyles surfaces, depth,
+   type and motion without changing any markup or logic.
+   ============================================================ */
+:root{
+  --r:22px;
+  --grad-pri:linear-gradient(135deg,#2ee6b8 0%,#12b8d4 100%);
+  --grad-warm:linear-gradient(135deg,#ffb347 0%,#ff6f61 100%);
+  --glow:0 0 0 1px rgba(255,255,255,.04), 0 18px 40px -12px rgba(0,0,0,.7);
+  --ring:0 0 0 3px rgba(46,230,184,.16);
+  --ease:cubic-bezier(.22,1,.36,1);
+}
+body{background:
+   radial-gradient(1100px 620px at 8% -8%, rgba(46,230,184,.10), transparent 60%),
+   radial-gradient(900px 560px at 105% 4%, rgba(18,184,212,.09), transparent 62%),
+   var(--bg);
+  background-attachment:fixed;letter-spacing:-.01em}
+
+/* ---------- header ---------- */
+header{background:rgba(8,8,10,.62);backdrop-filter:blur(26px) saturate(180%);-webkit-backdrop-filter:blur(26px) saturate(180%);border-bottom:1px solid rgba(255,255,255,.07)}
+.hbar{padding:13px 18px}
+.brand{font-size:17px;letter-spacing:-.45px}
+.brand .mk{width:36px;height:36px;border-radius:12px;background:var(--grad-pri);box-shadow:0 6px 18px -4px rgba(46,230,184,.6);font-size:13.5px}
+.hbtn,.burger{border-radius:14px;border:1px solid rgba(255,255,255,.08);background:rgba(255,255,255,.05);transition:transform .18s var(--ease),background .18s}
+.hbtn:hover,.burger:hover{background:rgba(255,255,255,.1)}
+.hbtn:active,.burger:active{transform:scale(.9)}
+
+/* ---------- page furniture ---------- */
+h1{font-size:31px;letter-spacing:-1.1px;font-weight:800}
+.psub{font-size:14px;margin:6px 0 22px}
+.card{
+  background:linear-gradient(180deg,rgba(255,255,255,.045),rgba(255,255,255,.015)),var(--card);
+  border:1px solid rgba(255,255,255,.075);border-radius:var(--r);padding:20px;
+  box-shadow:var(--glow);
+  animation:rise .5s var(--ease) both}
+.card h2{font-size:17.5px;letter-spacing:-.4px}
+.card .cs{font-size:13px;margin:4px 0 16px}
+@keyframes rise{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+main>*:nth-child(1){animation-delay:.02s}
+main>*:nth-child(2){animation-delay:.06s}
+main>*:nth-child(3){animation-delay:.1s}
+main>*:nth-child(4){animation-delay:.14s}
+main>*:nth-child(5){animation-delay:.18s}
+
+/* ---------- hero ---------- */
+.hero{
+  position:relative;overflow:hidden;border-radius:28px;padding:26px 24px;
+  background:
+    radial-gradient(520px 240px at 88% -30%, rgba(18,184,212,.34), transparent 70%),
+    linear-gradient(145deg, rgba(46,230,184,.20) 0%, rgba(28,28,30,.92) 55%);
+  border:1px solid rgba(46,230,184,.22);
+  box-shadow:0 22px 50px -20px rgba(0,0,0,.85)}
+.hero::after{content:"";position:absolute;inset:-40% -10% auto auto;width:280px;height:280px;border-radius:50%;
+  background:radial-gradient(circle,rgba(46,230,184,.20),transparent 68%);pointer-events:none}
+.hero .hl{font-size:11px;letter-spacing:.16em;opacity:.85}
+.hero .hamt{font-size:56px;letter-spacing:-2.6px;margin:8px 0 0;
+  background:linear-gradient(180deg,#ffffff 30%,#9beedd);-webkit-background-clip:text;background-clip:text;color:transparent}
+.hero .hd{font-size:14px;margin-top:10px}
+
+/* ---------- stats ---------- */
+.stats{gap:14px}
+.stat{position:relative;overflow:hidden;border-radius:20px;padding:16px 18px;
+  background:linear-gradient(180deg,rgba(255,255,255,.05),rgba(255,255,255,.015)),var(--card);
+  border:1px solid rgba(255,255,255,.075);box-shadow:var(--glow);transition:transform .22s var(--ease)}
+.stat::before{content:"";position:absolute;left:0;right:0;top:0;height:3px;background:var(--grad-pri);opacity:.9}
+.stat:hover{transform:translateY(-3px)}
+.stat .l{font-size:10px;letter-spacing:.12em}
+.stat .v{font-size:27px;letter-spacing:-1px;margin-top:8px}
+
+/* ---------- controls ---------- */
+.seg{border-radius:14px;padding:4px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08)}
+.seg b{border-radius:10px;padding:7px 15px;transition:all .2s var(--ease)}
+.seg b.on{background:var(--grad-pri);color:#04241d;box-shadow:0 4px 12px -3px rgba(46,230,184,.6)}
+.chip{border-radius:999px;padding:8px 15px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.09);transition:all .2s var(--ease)}
+.chip:hover{background:rgba(255,255,255,.1)}
+.chip.on{background:var(--grad-pri);color:#04241d;border-color:transparent;box-shadow:0 5px 14px -4px rgba(46,230,184,.65)}
+.btn{border-radius:16px;padding:14px 22px;background:var(--grad-pri);color:#04241d;font-weight:800;letter-spacing:-.2px;
+  box-shadow:0 8px 22px -8px rgba(46,230,184,.75);transition:transform .18s var(--ease),box-shadow .18s}
+.btn:hover{transform:translateY(-2px);box-shadow:0 12px 28px -8px rgba(46,230,184,.85)}
+.btn:active{transform:translateY(0) scale(.98)}
+.btn.ghost{background:rgba(255,255,255,.06);color:var(--tx);border:1px solid rgba(255,255,255,.1);box-shadow:none}
+input,select{border-radius:14px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);transition:border-color .18s,box-shadow .18s}
+input:focus,select:focus{border-color:var(--pri);box-shadow:var(--ring)}
+
+/* ---------- restock bars ---------- */
+.next{border-radius:20px;padding:16px 18px;background:linear-gradient(180deg,rgba(255,255,255,.05),rgba(255,255,255,.015)),var(--card);border:1px solid rgba(255,255,255,.08);box-shadow:var(--glow);transition:transform .2s var(--ease)}
+.next:hover{transform:translateY(-2px)}
+.dbar{height:54px;border-radius:16px;padding:0 14px;margin-bottom:10px;
+  background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);
+  transition:transform .18s var(--ease),border-color .18s,background .18s}
+.dbar:hover{transform:translateX(3px);background:rgba(255,255,255,.07)}
+.dbar.sm{height:44px;border-radius:14px}
+.dbar i{border-radius:15px;transition:width .8s var(--ease)}
+.dbar .lbl{font-size:15px;letter-spacing:-.25px;font-weight:650}
+.dbar .rt{font-size:11.5px;font-weight:600}
+.dbar.empty{border-color:rgba(255,159,10,.45);background:rgba(255,159,10,.07)}
+.snz{border-radius:11px;padding:6px 11px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);transition:all .18s var(--ease)}
+.snz:hover{background:rgba(255,255,255,.14);color:var(--tx)}
+.snz:active{transform:scale(.9)}
+.snz.done:hover{background:rgba(46,230,184,.2);color:var(--pri);border-color:rgba(46,230,184,.4)}
+
+/* ---------- charts ---------- */
+.mbar{height:160px;gap:6px}
+.mbar .b i{border-radius:7px 7px 3px 3px;background:linear-gradient(180deg,#2ee6b8,rgba(18,184,212,.22));transition:filter .2s,transform .2s var(--ease)}
+.mbar .b:hover i{filter:brightness(1.25);transform:scaleY(1.03)}
+.spark i{border-radius:4px 4px 1px 1px}
+
+/* ---------- insight card ---------- */
+.insrow{padding:14px 0}
+.insico{width:38px;height:38px;border-radius:13px;display:grid;place-items:center;
+  background:linear-gradient(135deg,rgba(46,230,184,.20),rgba(18,184,212,.12));color:var(--pri);font-size:20px}
+.institle{font-size:13px;letter-spacing:.02em;font-weight:750}
+.insbody{font-size:14px;line-height:1.6}
+.insintro{font-size:14px;opacity:.85;margin-bottom:4px}
+
+/* ---------- tables ---------- */
+th{font-size:10px;letter-spacing:.12em;padding:11px 10px}
+td{padding:13px 10px;font-size:14px;border-bottom:1px solid rgba(255,255,255,.05)}
+tbody tr{transition:background .16s}
+tbody tr:hover{background:rgba(255,255,255,.035)}
+.tag{border-radius:9px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1)}
+
+/* ---------- fab ---------- */
+.fab{width:60px;height:60px;right:20px;bottom:calc(22px + env(safe-area-inset-bottom));
+  background:var(--grad-pri);box-shadow:0 12px 30px -8px rgba(46,230,184,.75);opacity:1;
+  transition:transform .22s var(--ease),box-shadow .22s}
+.fab:hover{transform:scale(1.07) rotate(-4deg);box-shadow:0 16px 38px -8px rgba(46,230,184,.9)}
+.fab:active{transform:scale(.93)}
+.fab .bkt{font-size:28px}
+.fab .pl{top:9px;right:9px;width:18px;height:18px;line-height:18px;font-size:14px}
+
+/* ---------- sheet & drawer ---------- */
+.sheet{border-radius:28px 28px 0 0;padding-top:8px;background:linear-gradient(180deg,rgba(255,255,255,.05),transparent),var(--card2);border-top:1px solid rgba(255,255,255,.1)}
+.sheet::before{content:"";display:block;width:42px;height:5px;border-radius:99px;background:rgba(255,255,255,.22);margin:6px auto 10px}
+.shbtn:active{transform:scale(.985)}
+.drawer{border-radius:0 26px 26px 0;background:linear-gradient(180deg,rgba(255,255,255,.04),transparent),var(--bg2)}
+.drawer a{border-radius:15px;transition:background .18s,color .18s}
+.drawer a.on{background:var(--grad-pri);color:#04241d;box-shadow:0 6px 18px -6px rgba(46,230,184,.7)}
+
+/* ---------- search ---------- */
+.srch{position:relative;margin-bottom:14px}
+.srch input{width:100%;padding-left:42px}
+.srch .material-symbols-outlined{position:absolute;left:13px;top:50%;transform:translateY(-50%);color:var(--mut);pointer-events:none}
+
+/* ---------- light theme: brighter, softer, friendlier ---------- */
+body[data-theme="light"]{
+  --grad-pri:linear-gradient(135deg,#19cfae 0%,#4fc3e8 100%);
+  --glow:0 10px 30px -12px rgba(178,140,110,.32);
+  background:
+    radial-gradient(1000px 560px at 6% -10%, rgba(120,231,204,.45), transparent 62%),
+    radial-gradient(880px 520px at 102% 2%, rgba(255,196,150,.42), transparent 64%),
+    radial-gradient(700px 500px at 50% 108%, rgba(190,180,255,.34), transparent 66%),
+    var(--bg)}
+body[data-theme="light"] header{background:rgba(255,250,245,.74);border-bottom:1px solid rgba(0,0,0,.05)}
+body[data-theme="light"] .card,body[data-theme="light"] .stat,body[data-theme="light"] .next{
+  background:rgba(255,255,255,.86);border:1px solid rgba(255,255,255,.9);box-shadow:var(--glow);backdrop-filter:blur(8px)}
+body[data-theme="light"] .hero{
+  background:radial-gradient(460px 220px at 88% -28%, rgba(255,205,160,.6), transparent 70%),
+             linear-gradient(145deg,#d6f7ec 0%,#ffffff 62%);
+  border-color:rgba(120,231,204,.55);box-shadow:0 18px 40px -20px rgba(150,120,100,.4)}
+body[data-theme="light"] .hero .hamt{background:linear-gradient(180deg,#0f9c82,#16a8be);-webkit-background-clip:text;background-clip:text;color:transparent}
+body[data-theme="light"] .dbar{background:rgba(255,255,255,.8);border-color:rgba(0,0,0,.05)}
+body[data-theme="light"] .dbar:hover{background:#fff}
+body[data-theme="light"] .snz,body[data-theme="light"] .chip,body[data-theme="light"] .seg,body[data-theme="light"] input,body[data-theme="light"] select,body[data-theme="light"] .hbtn,body[data-theme="light"] .burger{background:#fff;border-color:rgba(0,0,0,.07)}
+body[data-theme="light"] td{border-bottom:1px solid rgba(0,0,0,.05)}
+body[data-theme="light"] tbody tr:hover{background:rgba(0,0,0,.02)}
+body[data-theme="light"] .insico{background:linear-gradient(135deg,rgba(25,207,174,.2),rgba(79,195,232,.14));color:#0f9c82}
+body[data-theme="light"] .sheet::before{background:rgba(0,0,0,.15)}
+body[data-theme="light"] #deco span{opacity:.16}
+
+@media(max-width:520px){
+  .hero .hamt{font-size:48px}
+  h1{font-size:27px}
+  .card{padding:17px;border-radius:20px}
+}
+@media(prefers-reduced-motion:reduce){
+  *{animation:none!important;transition:none!important}
+}
 </style></head>
 <body>
 <div id="deco" aria-hidden="true"></div>
@@ -280,7 +459,8 @@ function deriveFromRaw(raw){
   const inv=cmergedRows.map(p=>{const b=bmap[normName(p.product_name)];const oc=p.orders_count||0;
     return {name:p.product_name,brand:(p.brand||'').trim(),category:canon(p.category),times:oc,avg_cost:Math.round((p.total_spent||0)/Math.max(oc,1)*100)/100,last_buy:p.last_buy,avg_days:(b&&b.avg_days)?Math.round(b.avg_days*10)/10:null};});
   inv.sort((a,b)=>b.times-a.times);
-  let orders=(raw.orders||[]).map(o=>({...o,src:'coles'}));
+  // Ignore placeholder/failed ingests (no items AND no money) so they can't skew spend, averages or the forecast.
+  let orders=(raw.orders||[]).filter(o=>!((Number(o.items)||0)===0&&(Number(o.amt)||0)<=0)).map(o=>({...o,src:'coles'}));
   manual.forEach(m=>orders.push({d:m.date,ordno:m.id,amt:m.total,items:m.items.length,src:'manual',store:m.store}));
   orders.sort((a,b)=>new Date(b.d)-new Date(a.d));
   const monthly={};orders.forEach(o=>{const ym=(o.d||'').slice(0,7);if(!ym)return;(monthly[ym]=monthly[ym]||{ym,spent:0,orders:0});monthly[ym].spent+=o.amt||0;monthly[ym].orders++;});
@@ -494,7 +674,7 @@ function renderInv(){
     const pt=priceFor(i.name);
     return `<tr><td><div style="font-weight:600">${i.name}</div><div class="mut" style="font-size:11px">${i.brand||''}${pt?` · <span class="pnow">${money(pt.now)} now</span>${pt.was&&pt.was>pt.now?` <span class="pwas">${money(pt.was)}</span>`:''}`:''}</div>${isDown(i.name)?`<div class="ihide"><span class="tag warn">${hid()[i.name]?'hidden':'snoozed'+(snzUntil(i.name)?' · back '+fmtD(snzUntil(i.name)):'')}</span><button class="snz done" onclick="wake('${i.name.replace(/'/g,"\\'")}')">show</button></div>`:''}</td><td><span class="tag">${i.category}</span></td><td>${fmtD(i.last_buy)}</td><td>${i.times}×</td><td>${i.avg_days?('~'+Math.round(i.avg_days)+'d'):'<span class=mut>—</span>'}</td><td>${stock===null?'<span class=mut>—</span>':`<div class="bar" style="width:70px"><i style="width:${stock}%;background:${segColor(u.pct)}"></i></div>`}</td><td style="font-weight:600">${money(i.avg_cost)}</td></tr>`;}).join('');
   $('#view').innerHTML=`<h1>Inventory</h1><div class="psub">${D.inv.length} products · est. stock from purchase cycles</div>${statCards()}
-  <div class="card"><div class="chips">${chips}</div><div style="overflow-x:auto"><table class="${state.density==='compact'?'dense':''}"><thead><tr><th>Item</th><th>Category</th><th>Last</th><th>Bought</th><th>Cycle</th><th>Est. stock</th><th>Avg cost</th></tr></thead><tbody>${rows}</tbody></table></div></div>`;
+  <div class="card"><div class="srch"><span class="material-symbols-outlined">search</span><input id="invq" type="search" placeholder="Search items or brands…" value="${(state.q||'').replace(/"/g,'&quot;')}" oninput="state.q=this.value.toLowerCase();clearTimeout(window._qt);window._qt=setTimeout(()=>{render();const el=document.getElementById('invq');if(el){el.focus();el.setSelectionRange(el.value.length,el.value.length);}},200)"></div><div class="chips">${chips}</div><div class="mut" style="font-size:12px;margin-bottom:10px">${list.length} of ${D.inv.length} shown</div><div style="overflow-x:auto"><table class="${state.density==='compact'?'dense':''}"><thead><tr><th>Item</th><th>Category</th><th>Last</th><th>Bought</th><th>Cycle</th><th>Est. stock</th><th>Avg cost</th></tr></thead><tbody>${rows}</tbody></table></div></div>`;
 }
 function renderOrd(){
   const mm=D.monthly;const maxm=Math.max(...mm.map(m=>m.spent));
@@ -573,6 +753,26 @@ function render(){
   $('#fdates').textContent=fmtD(D.stats.first_order)+' – '+fmtD(D.stats.last_order);
   const v=state.view;
   if(v==='dash')renderDash();else if(v==='list')renderList();else if(v==='inv')renderInv();else if(v==='ord')renderOrd();else if(v==='add')renderAdd();else renderSet();
+  countUp();
+}
+/* Animate the big numbers so the page feels alive on open. */
+function countUp(){
+  if(window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches)return;
+  document.querySelectorAll('.hero .hamt, .stat .v').forEach(el=>{
+    if(el.dataset.cu)return; el.dataset.cu='1';
+    const txt=el.textContent; const m=txt.match(/-?[\d,]+(?:\.\d+)?/);
+    if(!m)return;
+    const target=parseFloat(m[0].replace(/,/g,'')); if(!isFinite(target)||target===0)return;
+    const dec=(m[0].split('.')[1]||'').length;
+    const pre=txt.slice(0,m.index), post=txt.slice(m.index+m[0].length);
+    const dur=750, t0=performance.now();
+    const fmt=n=>n.toLocaleString('en-AU',{minimumFractionDigits:dec,maximumFractionDigits:dec});
+    (function step(t){
+      const p=Math.min(1,(t-t0)/dur), e=1-Math.pow(1-p,3);
+      el.textContent=pre+fmt(target*e)+post;
+      if(p<1)requestAnimationFrame(step); else el.textContent=txt;
+    })(t0);
+  });
 }
 async function loadLive(force){
   try{const r=await fetch(LIVE_ENDPOINT+'?t='+Date.now(),{cache:'no-store'});if(r.ok){const j=await r.json();RAW=j.data||j;D=deriveFromRaw(RAW);}}catch(e){}
