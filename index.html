@@ -491,7 +491,14 @@ function deriveFromRaw(raw){
       if((r.seen||0)>=(best.seen||0))best=r;});
     const ms=totalP-1,avg=ms>0?(last-first)/86400000/ms:best.avg_days;
     return {product_name:best.product_name,category:best.category,brand:best.brand,seen:ms,avg_days:avg,last_bought:new Date(last).toISOString().slice(0,10)};});
-  const burn=[];bmergedRows.forEach(b=>{const lb=b.last_bought?new Date(b.last_bought):null;const ad=b.avg_days;const seen=b.seen||0;
+  // A product can exist under more than one warehouse key (online vs in-store, or a key change
+  // after a Coles template update). The catalog lists every purchase, so use the newest buy of
+  // the same product NAME as the true "last bought" — otherwise a fresh shop won't reset the clock.
+  const lastByName={};
+  (raw.catalog||[]).forEach(p=>{const k=normName(p.product_name);const d=p.last_buy;if(!d)return;if(!lastByName[k]||d>lastByName[k])lastByName[k]=d;});
+  const burn=[];bmergedRows.forEach(b=>{const cl=lastByName[normName(b.product_name)];
+    if(cl&&(!b.last_bought||cl>b.last_bought))b.last_bought=cl;
+    const lb=b.last_bought?new Date(b.last_bought):null;const ad=b.avg_days;const seen=b.seen||0;
     if(!lb||!ad||ad<=0||lb<cutoff)return;
     burn.push({name:b.product_name,brand:(b.brand||'').trim(),category:canon(b.category),seen,avg_days:Math.round(ad*10)/10,last_bought:b.last_bought,importance:Math.round(seen*(30/ad)*100)/100,staple:(seen>=15&&ad<=50)});});
   burn.sort((a,b)=>b.importance-a.importance);
