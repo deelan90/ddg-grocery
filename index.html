@@ -384,6 +384,44 @@ body[data-theme="light"] #deco span{opacity:.16}
   h1{font-size:27px}
   .card{padding:17px;border-radius:20px}
 }
+/* ---------- category tiles ---------- */
+.tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(148px,1fr));gap:12px;margin-top:4px}
+.tile{position:relative;overflow:hidden;display:flex;flex-direction:column;align-items:flex-start;gap:2px;
+  padding:16px 15px 14px;border-radius:20px;cursor:pointer;text-align:left;font-family:inherit;color:var(--tx);
+  background:linear-gradient(180deg,rgba(255,255,255,.055),rgba(255,255,255,.015)),var(--card2);
+  border:1px solid rgba(255,255,255,.09);
+  box-shadow:0 10px 26px -14px rgba(0,0,0,.8);
+  transition:transform .22s var(--ease),box-shadow .22s var(--ease),border-color .2s}
+.tile::before{content:"";position:absolute;inset:0;opacity:.13;pointer-events:none;
+  background:radial-gradient(120px 90px at 88% -18%, var(--tone), transparent 70%)}
+.tile:hover{transform:translateY(-4px);box-shadow:0 18px 34px -14px rgba(0,0,0,.9)}
+.tile:active{transform:translateY(-1px) scale(.985)}
+.tile .tico{font-size:27px;line-height:1;margin-bottom:6px;filter:drop-shadow(0 3px 6px rgba(0,0,0,.4))}
+.tile .tnum{font-size:34px;font-weight:850;letter-spacing:-1.6px;line-height:1;color:var(--tone)}
+.tile .tlbl{font-size:13.5px;font-weight:700;letter-spacing:-.25px;line-height:1.25;margin-top:3px}
+.tile .tsub{font-size:11px;color:var(--mut);font-weight:600}
+.tile .tbar{display:block;width:100%;height:5px;border-radius:99px;background:rgba(255,255,255,.09);margin-top:11px;overflow:hidden}
+.tile .tbar i{display:block;height:100%;border-radius:99px;background:var(--tone);transition:width .8s var(--ease)}
+.tile.ok{--tone:var(--pri)}
+.tile.due{--tone:var(--due)}
+.tile.over{--tone:var(--over)}
+.tile.crit{--tone:var(--crit)}
+.tile.on{border-color:var(--tone);box-shadow:0 0 0 2px color-mix(in srgb, var(--tone) 35%, transparent),0 18px 34px -14px rgba(0,0,0,.9)}
+.tpanel{margin-top:16px;padding-top:4px;animation:rise .35s var(--ease) both}
+.tphead{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+.tphead .cico{font-size:20px}
+.tphead .cnm{font-weight:750;font-size:15.5px;letter-spacing:-.3px}
+.tphead .snz{margin-left:auto}
+@media(max-width:520px){
+  .tiles{grid-template-columns:repeat(2,1fr);gap:10px}
+  .tile{padding:14px 13px 12px;border-radius:18px}
+  .tile .tnum{font-size:30px}
+  .tile .tlbl{font-size:12.5px}
+}
+body[data-theme="light"] .tile{background:rgba(255,255,255,.9);border-color:rgba(255,255,255,.95);box-shadow:0 10px 24px -14px rgba(178,140,110,.6)}
+body[data-theme="light"] .tile .tbar{background:rgba(0,0,0,.07)}
+body[data-theme="light"] .tile::before{opacity:.2}
+
 @media(prefers-reduced-motion:reduce){
   *{animation:none!important;transition:none!important}
 }
@@ -648,8 +686,19 @@ function renderDash(){
     const right=b.pct>=100?'top up':'≈ '+fmtD(new Date(new Date(b.last_bought).getTime()+b.avg_days*86400000));
     return `<div class="dbar ${b.pct>=100?'empty':''} ${compact?'sm':''}" data-snz="${b.name.replace(/"/g,'&quot;')}"><i style="width:${rem}%;background:${fill}"></i><span class="ic">${iconFor(b.name)}</span><span class="lbl">${b.name}</span><span class="rt">${right}</span>${priceFor(b.name)?`<span class="pr">${priceTag(b.name)}</span>`:''}<button class="snz done" title="Mark as bought" onclick="event.stopPropagation();markBought('${b.name.replace(/'/g,"\\'")}')">✓</button><button class="snz" title="Snooze" onclick="event.stopPropagation();toggleSnooze('${b.name.replace(/'/g,"\\'")}')">zZ</button></div>`;};
   const acc=cats.map(([cat,items])=>{const open=state.openCat===cat;const od=items.filter(i=>i.pct>=100).length;const cc=cat.replace(/'/g,"\\'");
-    return `<div class="acc ${open?'open':''}"><div class="acch" onclick="state.openCat=state.openCat==='${cc}'?null:'${cc}';render()"><span class="cico">${catIcon(cat)}</span><span class="cnm">${cat}</span><span class="cct">${items.length} item${items.length>1?'s':''}${od?` · <b>${od} due</b>`:''}</span><span class="material-symbols-outlined chev">expand_more</span></div><div class="accb">${items.sort((a,b)=>b.pct-a.pct).map(bar).join('')}</div></div>`;}).join('');
-  const restock=`<div class="card"><h2><span class="material-symbols-outlined" style="color:var(--pri)">shopping_basket</span>Time to restock</h2><div class="cs">Tap a category to see what's running low.</div>${acc||'<div class="mut" style="padding:12px 0">All stocked up ✨</div>'}</div>`;
+    const ratio=items.length?Math.round(od/items.length*100):0;
+    const tone=od===0?'ok':ratio>=60?'crit':ratio>=30?'over':'due';
+    return `<button class="tile ${tone} ${open?'on':''}" onclick="state.openCat=state.openCat==='${cc}'?null:'${cc}';render()">
+      <span class="tico">${catIcon(cat)}</span>
+      <span class="tnum">${od||items.length}</span>
+      <span class="tlbl">${cat}</span>
+      <span class="tsub">${od?`due · ${items.length} tracked`:`${items.length} tracked`}</span>
+      <span class="tbar"><i style="width:${Math.max(ratio,3)}%"></i></span>
+    </button>`;}).join('');
+  const openItems=(state.openCat&&byCat[state.openCat])?byCat[state.openCat].slice().sort((a,b)=>b.pct-a.pct):null;
+  const panel=openItems?`<div class="tpanel"><div class="tphead"><span class="cico">${catIcon(state.openCat)}</span><span class="cnm">${state.openCat}</span><button class="snz" onclick="state.openCat=null;render()">close</button></div>${openItems.map(bar).join('')}</div>`:'';
+  const totalDue=attn.filter(b=>b.pct>=100).length;
+  const restock=`<div class="card"><h2><span class="material-symbols-outlined" style="color:var(--pri)">shopping_basket</span>Time to restock</h2><div class="cs">${totalDue?`<b>${totalDue}</b> item${totalDue>1?'s':''} due now · tap a tile to see them`:'Tap a tile to see what\'s running low'}</div>${acc?`<div class="tiles">${acc}</div>${panel}`:'<div class="mut" style="padding:12px 0">All stocked up ✨</div>'}</div>`;
   const fn=fortnightly(D.orders,14);
   const rec=fn.slice(-3),pri=fn.slice(-6,-3);
   const ra=rec.reduce((s,m)=>s+m.spent,0)/Math.max(rec.length,1),pa=pri.reduce((s,m)=>s+m.spent,0)/Math.max(pri.length,1);
