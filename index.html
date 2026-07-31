@@ -407,11 +407,17 @@ body[data-theme="light"] #deco span{opacity:.16}
 .tile.over{--tone:var(--over)}
 .tile.crit{--tone:var(--crit)}
 .tile.on{border-color:var(--tone);box-shadow:0 0 0 2px color-mix(in srgb, var(--tone) 35%, transparent),0 18px 34px -14px rgba(0,0,0,.9)}
-.tpanel{margin-top:16px;padding-top:4px;animation:rise .35s var(--ease) both}
-.tphead{display:flex;align-items:center;gap:10px;margin-bottom:12px}
-.tphead .cico{font-size:20px}
-.tphead .cnm{font-weight:750;font-size:15.5px;letter-spacing:-.3px}
+.tpanel{grid-column:1/-1;margin:4px 0 6px;padding:16px 16px 8px;border-radius:20px;
+  background:rgba(255,255,255,.035);border:1px solid rgba(255,255,255,.08);
+  animation:pop .34s var(--ease) both}
+@keyframes pop{from{opacity:0;transform:translateY(-8px) scale(.985)}to{opacity:1;transform:none}}
+.tphead{display:flex;align-items:center;gap:10px;margin-bottom:14px}
+.tphead .cico{font-size:22px}
+.tphead .cnm{font-weight:750;font-size:16px;letter-spacing:-.3px}
+.tphead .tpct{font-size:11.5px;color:var(--mut);font-weight:600}
 .tphead .snz{margin-left:auto}
+.tpanel .dbar:last-of-type{margin-bottom:8px}
+body[data-theme="light"] .tpanel{background:rgba(255,255,255,.72);border-color:rgba(0,0,0,.05)}
 @media(max-width:520px){
   .tiles{grid-template-columns:repeat(2,1fr);gap:10px}
   .tile{padding:14px 13px 12px;border-radius:18px}
@@ -694,11 +700,17 @@ function renderDash(){
       <span class="tlbl">${cat}</span>
       <span class="tsub">${od?`due · ${items.length} tracked`:`${items.length} tracked`}</span>
       <span class="tbar"><i style="width:${Math.max(ratio,3)}%"></i></span>
-    </button>`;}).join('');
-  const openItems=(state.openCat&&byCat[state.openCat])?byCat[state.openCat].slice().sort((a,b)=>b.pct-a.pct):null;
-  const panel=openItems?`<div class="tpanel"><div class="tphead"><span class="cico">${catIcon(state.openCat)}</span><span class="cnm">${state.openCat}</span><button class="snz" onclick="state.openCat=null;render()">close</button></div>${openItems.map(bar).join('')}</div>`:'';
+    </button>`;});
+  // Drop the expanded list straight after the tile you tapped (full-width row inside the grid),
+  // so it opens where you're looking instead of below every tile.
+  const openIdx=cats.findIndex(([c])=>c===state.openCat);
+  if(openIdx>-1){
+    const items=byCat[state.openCat].slice().sort((a,b)=>b.pct-a.pct);
+    const due=items.filter(i=>i.pct>=100).length;
+    acc.splice(openIdx+1,0,`<div class="tpanel"><div class="tphead"><span class="cico">${catIcon(state.openCat)}</span><span class="cnm">${state.openCat}</span><span class="tpct">${due} due · ${items.length} tracked</span><button class="snz" onclick="state.openCat=null;render()">close</button></div>${items.map(bar).join('')}</div>`);
+  }
   const totalDue=attn.filter(b=>b.pct>=100).length;
-  const restock=`<div class="card"><h2><span class="material-symbols-outlined" style="color:var(--pri)">shopping_basket</span>Time to restock</h2><div class="cs">${totalDue?`<b>${totalDue}</b> item${totalDue>1?'s':''} due now · tap a tile to see them`:'Tap a tile to see what\'s running low'}</div>${acc?`<div class="tiles">${acc}</div>${panel}`:'<div class="mut" style="padding:12px 0">All stocked up ✨</div>'}</div>`;
+  const restock=`<div class="card"><h2><span class="material-symbols-outlined" style="color:var(--pri)">shopping_basket</span>Time to restock</h2><div class="cs">${totalDue?`<b>${totalDue}</b> item${totalDue>1?'s':''} due now · tap a tile to see them`:'Tap a tile to see what\'s running low'}</div>${acc.length?`<div class="tiles">${acc.join('')}</div>`:'<div class="mut" style="padding:12px 0">All stocked up ✨</div>'}</div>`;
   const fn=fortnightly(D.orders,14);
   const rec=fn.slice(-3),pri=fn.slice(-6,-3);
   const ra=rec.reduce((s,m)=>s+m.spent,0)/Math.max(rec.length,1),pa=pri.reduce((s,m)=>s+m.spent,0)/Math.max(pri.length,1);
