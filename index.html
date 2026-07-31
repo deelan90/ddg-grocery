@@ -494,9 +494,20 @@ function deriveFromRaw(raw){
   // A product can exist under more than one warehouse key (online vs in-store, or a key change
   // after a Coles template update). The catalog lists every purchase, so use the newest buy of
   // the same product NAME as the true "last bought" — otherwise a fresh shop won't reset the clock.
+  const flat=s=>String(s||'').toLowerCase().replace(/[^a-z0-9]+/g,' ').replace(/\s+/g,' ').trim();
+  const brandSet=new Set();
+  [...(raw.catalog||[]),...(raw.burndown||[])].forEach(p=>{const b=flat(p.brand);if(b&&b.length>2)brandSet.add(b);});
+  function coreName(name,brand){
+    let s=flat(name).replace(/\s+\d+(?:\.\d+)?\s*(?:g|kg|mg|ml|l|ea|pk|pack)$/,'').trim();
+    let best='';const b=flat(brand);
+    if(b&&s.startsWith(b+' '))best=b;
+    brandSet.forEach(br=>{if(s.startsWith(br+' ')&&br.length>best.length)best=br;});
+    if(best)s=s.slice(best.length+1).trim();
+    return s||flat(name);
+  }
   const lastByName={};
-  (raw.catalog||[]).forEach(p=>{const k=normName(p.product_name);const d=p.last_buy;if(!d)return;if(!lastByName[k]||d>lastByName[k])lastByName[k]=d;});
-  const burn=[];bmergedRows.forEach(b=>{const cl=lastByName[normName(b.product_name)];
+  (raw.catalog||[]).forEach(p=>{const k=coreName(p.product_name,p.brand);const d=p.last_buy;if(!d)return;if(!lastByName[k]||d>lastByName[k])lastByName[k]=d;});
+  const burn=[];bmergedRows.forEach(b=>{const cl=lastByName[coreName(b.product_name,b.brand)];
     if(cl&&(!b.last_bought||cl>b.last_bought))b.last_bought=cl;
     const lb=b.last_bought?new Date(b.last_bought):null;const ad=b.avg_days;const seen=b.seen||0;
     if(!lb||!ad||ad<=0||lb<cutoff)return;
