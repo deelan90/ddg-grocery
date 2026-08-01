@@ -937,7 +937,14 @@ async function loadLive(force){
   try{const r2=await fetch(INSIGHTS_URL+'?t='+Date.now(),{cache:'no-store'});if(r2.ok){INSIGHTS=await r2.json();}}catch(e){}
   try{const ri=await fetch(IMAGES_URL+'?t='+Date.now(),{cache:'no-store'});
     if(ri.ok){const ij=await ri.json();IMGBASE=ij.base||IMGBASE;IMGMAP={};
-      Object.entries(ij.items||{}).forEach(([n,c])=>{IMGMAP[imgKey(n)]=c;});}}catch(e){}
+      // Coles lists products as "Brand Product | size"; our warehouse stores the bare product.
+      // Index the full name AND brand-stripped variants so both forms find the photo.
+      Object.entries(ij.items||{}).forEach(([n,c])=>{
+        const k=imgKey(n);if(!k)return;
+        if(!IMGMAP[k])IMGMAP[k]=c;
+        const w=k.split(' ');
+        for(let i=1;i<=3&&i<w.length-1;i++){const v=w.slice(i).join(' ');if(v.length>6&&!IMGMAP[v])IMGMAP[v]=c;}
+      });}}catch(e){}
   try{const r3=await fetch(PRICES_URL+'?t='+Date.now(),{cache:'no-store'});if(r3.ok){const pj=await r3.json();PRICEMAP={};(pj.items||[]).forEach(it=>{PRICEMAP[gnorm(it.name)]={now:it.price,was:it.was,at:pj.generated};});}}catch(e){}
   render();syncManual();
 }
