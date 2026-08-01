@@ -242,8 +242,9 @@ h1{font-size:31px;letter-spacing:-1.1px;font-weight:800}
 .card{
   background:linear-gradient(180deg,rgba(255,255,255,.045),rgba(255,255,255,.015)),var(--card);
   border:1px solid rgba(255,255,255,.075);border-radius:var(--r);padding:20px;
-  box-shadow:var(--glow);
-  animation:rise .5s var(--ease) both}
+  box-shadow:var(--glow)}
+/* Entrance animation only on the first paint, so later updates don't flash the page. */
+body.fp .card{animation:rise .5s var(--ease) both}
 .card h2{font-size:17.5px;letter-spacing:-.4px}
 .card .cs{font-size:13px;margin:4px 0 16px}
 @keyframes rise{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
@@ -348,6 +349,12 @@ tbody tr:hover{background:rgba(255,255,255,.035)}
 .drawer a{border-radius:15px;transition:background .18s,color .18s}
 .drawer a.on{background:var(--grad-pri);color:#04241d;box-shadow:0 6px 18px -6px rgba(46,230,184,.7)}
 
+/* ---------- rename control ---------- */
+.ren{background:none;border:none;color:var(--mut);cursor:pointer;padding:2px 4px;margin-left:5px;border-radius:7px;vertical-align:middle;opacity:.55;transition:opacity .15s,background .15s}
+.ren .material-symbols-outlined{font-size:15px}
+.ren:hover{opacity:1;background:rgba(255,255,255,.09);color:var(--tx)}
+tr:hover .ren{opacity:.9}
+
 /* ---------- search ---------- */
 .srch{position:relative;margin-bottom:14px}
 .srch input{width:100%;padding-left:42px}
@@ -402,15 +409,17 @@ body[data-theme="light"] #deco span{opacity:.16}
 .tile .tsub{font-size:11px;color:var(--mut);font-weight:600}
 .tile .tbar{display:block;width:100%;height:5px;border-radius:99px;background:rgba(255,255,255,.09);margin-top:11px;overflow:hidden}
 .tile .tbar i{display:block;height:100%;border-radius:99px;background:var(--tone);transition:width .8s var(--ease)}
-.tile.ok{--tone:var(--pri)}
-.tile.due{--tone:var(--due)}
-.tile.over{--tone:var(--over)}
-.tile.crit{--tone:var(--crit)}
+/* Softer, calmer urgency palette — informative without shouting. */
+.tile.ok{--tone:#3fcfae}
+.tile.due{--tone:#e3c05f}
+.tile.over{--tone:#e5a267}
+.tile.crit{--tone:#dd8b83}
+.tile .tnum{color:var(--tone);opacity:.95}
+.tile::before{opacity:.09}
 .tile.on{border-color:var(--tone);box-shadow:0 0 0 2px color-mix(in srgb, var(--tone) 35%, transparent),0 18px 34px -14px rgba(0,0,0,.9)}
 .tpanel{grid-column:1/-1;margin:4px 0 6px;padding:16px 16px 8px;border-radius:20px;
   background:rgba(255,255,255,.035);border:1px solid rgba(255,255,255,.08);
-  animation:pop .34s var(--ease) both}
-@keyframes pop{from{opacity:0;transform:translateY(-8px) scale(.985)}to{opacity:1;transform:none}}
+  overflow:hidden;transition:height .24s var(--ease),opacity .2s ease}
 .tphead{display:flex;align-items:center;gap:10px;margin-bottom:14px}
 .tphead .cico{font-size:22px}
 .tphead .cnm{font-weight:750;font-size:16px;letter-spacing:-.3px}
@@ -571,6 +580,20 @@ const CATICON={'Dairy, Eggs & Fridge':'🥛','Fruit & Vegetables':'🥦','Meat &
 function catIcon(c){return CATICON[c]||'🛒';}
 const ICONMAP=[['toilet','🧻'],['paper towel','🧻'],['tissue','🤧'],['milk','🥛'],['bread','🍞'],['roll','🍞'],['wrap','🌯'],['egg','🥚'],['chicken','🍗'],['lamb','🥩'],['beef','🥩'],['mince','🥩'],['banana','🍌'],['apple','🍎'],['tomato','🍅'],['potato','🥔'],['onion','🧅'],['carrot','🥕'],['lettuce','🥬'],['spinach','🥬'],['broccoli','🥦'],['cucumber','🥒'],['capsicum','🫑'],['mushroom','🍄'],['lemon','🍋'],['grape','🍇'],['peach','🍑'],['cheese','🧀'],['yog','🥣'],['oat','🥣'],['cream','🥛'],['butter','🧈'],['marg','🧈'],['olive oil','🫒'],['oil','🫗'],['rice','🍚'],['pasta','🍝'],['spaghetti','🍝'],['noodle','🍜'],['chip','🍟'],['crisp','🍟'],['shapes','🧀'],['choc','🍫'],['cookie','🍪'],['biscuit','🍪'],['cracker','🍘'],['honey','🍯'],['sauce','🥫'],['bean','🫘'],['chick pea','🫘'],['coffee','☕'],['tea','🍵'],['juice','🧃'],['soft drink','🥤'],['cola','🥤'],['water','💧'],['ice','🍦'],['pizza','🍕'],['taco','🌮'],['clean','🧽'],['dish','🧽'],['laundry','🧺'],['detergent','🧴'],['toothpaste','🪥'],['dog','🐶'],['fish','🐟'],['peanut','🥜'],['nut','🥜'],['flour','🌾'],['sugar','🍬'],['salt','🧂'],['pepper','🌶'],['chilli','🌶'],['garlic','🧄'],['ginger','🫚'],['herb','🌿'],['parsley','🌿'],['basil','🌿'],['zucchini','🥒'],['eggplant','🍆'],['pineapple','🍍'],['strawberr','🍓'],['beetroot','🥬'],['cauliflower','🥦'],['pea','🫛']];
 function iconFor(n){n=(n||'').toLowerCase();for(const[k,v]of ICONMAP)if(n.includes(k))return v;return '🛒';}
+/* ---------- display-only renaming (never touches product mapping) ---------- */
+function nameMap(){return store.get('ddg_names_v1',{});}
+function dispName(n){const m=nameMap();return (m[n]&&m[n].trim())?m[n]:n;}
+function setName(orig,val){const m=nameMap();if(val&&val.trim()&&val.trim()!==orig)m[orig]=val.trim();else delete m[orig];store.set('ddg_names_v1',m);render();}
+function renameItem(orig){const cur=dispName(orig);const v=prompt('Display name for this item\n(only changes what you see — the data stays linked)',cur);if(v!==null)setName(orig,v);}
+/* Stray/unusable product names from early parsing. Hidden from the dashboard and
+   shopping list, but still listed in Inventory so they can be renamed or kept. */
+function isStray(n){const s=String(n||'').trim();
+  if(nameMap()[n])return false;               // already given a proper name
+  if(s.length<4)return true;
+  if(/^coles$/i.test(s))return true;
+  if(/^[^a-z]*$/i.test(s.replace(/[^a-zA-Z]/g,''))&&s.replace(/[^a-zA-Z]/g,'').length<4)return true;
+  if(!/[a-z]/.test(s))return true;            // e.g. "COLES  " / all-caps single token
+  return false;}
 function trendSvg(mm){if(!mm.length)return '<div class="mut">No data yet.</div>';
   const w=340,h=112,pl=6,pr=6,pt=16,pb=20;const vals=mm.map(m=>m.spent);const max=Math.max(...vals),min=Math.min(...vals),rng=max-min||1;
   const X=i=>pl+i*((w-pl-pr)/Math.max(mm.length-1,1));const Y=v=>pt+(1-(v-min)/rng)*(h-pt-pb);
@@ -692,8 +715,41 @@ function statCards(){const fc=forecast(D.orders);
   ['Avg shop',money0(D.stats.avg_order),'basket size'],
   ['Next shop',fc?('~'+money0(fc.amount)):'—',fc?('around '+fmtD(fc.next)):'need more data']];
   return '<div class="stats">'+st.map(s=>`<div class="stat"><div class="l">${s[0]}</div><div class="v">${s[1]}</div><div class="d">${s[2]}</div></div>`).join('')+'</div>';}
+/* Category panels are pre-built during render so opening one is a pure DOM insert —
+   no re-render, so nothing flashes and the page doesn't jump. */
+let CATPANEL={};
+function toggleCat(cat){
+  const grid=document.querySelector('.tiles'); if(!grid) return;
+  const old=grid.querySelector('.tpanel');
+  const wasOpen=state.openCat;
+  // close whatever is open (collapse smoothly, then remove)
+  if(old){
+    old.style.height=old.scrollHeight+'px';
+    requestAnimationFrame(()=>{old.style.height='0px';old.style.opacity='0';});
+    setTimeout(()=>old.remove(),200);
+  }
+  grid.querySelectorAll('.tile.on').forEach(t=>t.classList.remove('on'));
+  if(!cat||cat===wasOpen){state.openCat=null;return;}
+  state.openCat=cat;
+  const tile=[...grid.querySelectorAll('.tile')].find(t=>t.dataset.cat===cat);
+  if(!tile||!CATPANEL[cat])return;
+  tile.classList.add('on');
+  // insert AFTER the last tile on the same row, so tiles beside it stay put
+  const tiles=[...grid.querySelectorAll('.tile')];
+  const top=tile.offsetTop;
+  let anchor=tile;
+  tiles.forEach(t=>{if(Math.abs(t.offsetTop-top)<4)anchor=t;});
+  const panel=document.createElement('div');
+  panel.className='tpanel';
+  panel.innerHTML=CATPANEL[cat];
+  panel.style.height='0px';panel.style.opacity='0';
+  anchor.insertAdjacentElement('afterend',panel);
+  requestAnimationFrame(()=>{panel.style.height=panel.scrollHeight+'px';panel.style.opacity='1';});
+  setTimeout(()=>{panel.style.height='auto';},260);
+}
 function renderDash(){
-  const burn=D.burn.map(withUrg).filter(b=>!isDown(b.name));
+  CATPANEL={};
+  const burn=D.burn.map(withUrg).filter(b=>!isDown(b.name)&&!isStray(b.name));
   // Hero forecast = the big planned online shop only; in-store top-ups are excluded so the fortnightly number stays meaningful.
   const online=D.orders.filter(o=>o.src==='coles'&&!String(o.ordno||'').toUpperCase().startsWith('INSTORE'));
   const fc=forecast(online.length>=6?online:D.orders);
@@ -708,25 +764,18 @@ function renderDash(){
   const cats=Object.entries(byCat).sort((a,b)=>{const oa=a[1].filter(i=>i.pct>=100).length,ob=b[1].filter(i=>i.pct>=100).length;return ob-oa||b[1].length-a[1].length;});
   const bar=b=>{const rem=Math.max(0,Math.min(100,100-b.pct));let fill=rem>=55?'rgba(32,213,171,.26)':rem>=30?'rgba(255,214,10,.20)':rem>0?'rgba(255,159,10,.22)':'transparent';
     const right=b.pct>=100?'top up':'≈ '+fmtD(new Date(new Date(b.last_bought).getTime()+b.avg_days*86400000));
-    return `<div class="dbar ${b.pct>=100?'empty':''} ${compact?'sm':''}" data-snz="${b.name.replace(/"/g,'&quot;')}"><i style="width:${rem}%;background:${fill}"></i><span class="ic">${iconFor(b.name)}</span><span class="lbl">${b.name}</span><span class="rt">${right}</span>${priceFor(b.name)?`<span class="pr">${priceTag(b.name)}</span>`:''}<button class="snz done" title="Mark as bought" onclick="event.stopPropagation();markBought('${b.name.replace(/'/g,"\\'")}')">✓</button><button class="snz" title="Snooze" onclick="event.stopPropagation();toggleSnooze('${b.name.replace(/'/g,"\\'")}')">zZ</button></div>`;};
+    return `<div class="dbar ${b.pct>=100?'empty':''} ${compact?'sm':''}" data-snz="${b.name.replace(/"/g,'&quot;')}"><i style="width:${rem}%;background:${fill}"></i><span class="ic">${iconFor(b.name)}</span><span class="lbl">${dispName(b.name)}</span><span class="rt">${right}</span>${priceFor(b.name)?`<span class="pr">${priceTag(b.name)}</span>`:''}<button class="snz done" title="Mark as bought" onclick="event.stopPropagation();markBought('${b.name.replace(/'/g,"\\'")}')">✓</button><button class="snz" title="Snooze" onclick="event.stopPropagation();toggleSnooze('${b.name.replace(/'/g,"\\'")}')">zZ</button></div>`;};
   const acc=cats.map(([cat,items])=>{const open=state.openCat===cat;const od=items.filter(i=>i.pct>=100).length;const cc=cat.replace(/'/g,"\\'");
     const ratio=items.length?Math.round(od/items.length*100):0;
     const tone=od===0?'ok':ratio>=60?'crit':ratio>=30?'over':'due';
-    return `<button class="tile ${tone} ${open?'on':''}" onclick="state.openCat=state.openCat==='${cc}'?null:'${cc}';render()">
+    CATPANEL[cat]=`<div class="tphead"><span class="cico">${catIcon(cat)}</span><span class="cnm">${cat}</span><span class="tpct">${od} due · ${items.length} tracked</span><button class="snz" onclick="toggleCat(null)">close</button></div>${items.slice().sort((a,b)=>b.pct-a.pct).map(bar).join('')}`;
+    return `<button class="tile ${tone} ${open?'on':''}" data-cat="${cat.replace(/"/g,'&quot;')}" onclick="toggleCat('${cc}')">
       <span class="tico">${catIcon(cat)}</span>
       <span class="tnum">${od||items.length}</span>
       <span class="tlbl">${cat}</span>
       <span class="tsub">${od?`due · ${items.length} tracked`:`${items.length} tracked`}</span>
       <span class="tbar"><i style="width:${Math.max(ratio,3)}%"></i></span>
     </button>`;});
-  // Drop the expanded list straight after the tile you tapped (full-width row inside the grid),
-  // so it opens where you're looking instead of below every tile.
-  const openIdx=cats.findIndex(([c])=>c===state.openCat);
-  if(openIdx>-1){
-    const items=byCat[state.openCat].slice().sort((a,b)=>b.pct-a.pct);
-    const due=items.filter(i=>i.pct>=100).length;
-    acc.splice(openIdx+1,0,`<div class="tpanel"><div class="tphead"><span class="cico">${catIcon(state.openCat)}</span><span class="cnm">${state.openCat}</span><span class="tpct">${due} due · ${items.length} tracked</span><button class="snz" onclick="state.openCat=null;render()">close</button></div>${items.map(bar).join('')}</div>`);
-  }
   const totalDue=attn.filter(b=>b.pct>=100).length;
   const restock=`<div class="card"><h2><span class="material-symbols-outlined" style="color:var(--pri)">shopping_basket</span>Time to restock</h2><div class="cs">${totalDue?`<b>${totalDue}</b> item${totalDue>1?'s':''} due now · tap a tile to see them`:'Tap a tile to see what\'s running low'}</div>${acc.length?`<div class="tiles">${acc.join('')}</div>`:'<div class="mut" style="padding:12px 0">All stocked up ✨</div>'}</div>`;
   const fn=fortnightly(D.orders,14);
@@ -751,7 +800,7 @@ function renderInv(){
   const chips=cats.slice(0,12).map(c=>`<div class="chip ${c===state.invCat?'on':''}" onclick="state.invCat='${c.replace(/'/g,"\\'")}';render()">${c}</div>`).join('');
   const rows=list.slice(0,150).map(i=>{const b=D.burn.find(x=>x.name===i.name);const u=b?withUrg(b):null;const stock=u?Math.max(0,Math.min(100,100-u.pct)):null;
     const pt=priceFor(i.name);
-    return `<tr><td><div style="font-weight:600">${i.name}</div><div class="mut" style="font-size:11px">${i.brand||''}${pt?` · <span class="pnow">${money(pt.now)} now</span>${pt.was&&pt.was>pt.now?` <span class="pwas">${money(pt.was)}</span>`:''}`:''}</div>${isDown(i.name)?`<div class="ihide"><span class="tag warn">${hid()[i.name]?'hidden':'snoozed'+(snzUntil(i.name)?' · back '+fmtD(snzUntil(i.name)):'')}</span><button class="snz done" onclick="wake('${i.name.replace(/'/g,"\\'")}')">show</button></div>`:''}</td><td><span class="tag">${i.category}</span></td><td>${fmtD(i.last_buy)}</td><td>${i.times}×</td><td>${i.avg_days?('~'+Math.round(i.avg_days)+'d'):'<span class=mut>—</span>'}</td><td>${stock===null?'<span class=mut>—</span>':`<div class="bar" style="width:70px"><i style="width:${stock}%;background:${segColor(u.pct)}"></i></div>`}</td><td style="font-weight:600">${money(i.avg_cost)}</td></tr>`;}).join('');
+    return `<tr><td><div style="font-weight:600">${dispName(i.name)}<button class="ren" title="Rename (display only)" onclick="renameItem('${i.name.replace(/'/g,"\\'")}')"><span class="material-symbols-outlined">edit</span></button>${nameMap()[i.name]?`<span class="tag" style="margin-left:6px">renamed</span>`:''}${isStray(i.name)?`<span class="tag warn" style="margin-left:6px">needs a name</span>`:''}</div><div class="mut" style="font-size:11px">${nameMap()[i.name]?`was “${i.name.trim()}” · `:''}${i.brand||''}${pt?` · <span class="pnow">${money(pt.now)} now</span>${pt.was&&pt.was>pt.now?` <span class="pwas">${money(pt.was)}</span>`:''}`:''}</div>${isDown(i.name)?`<div class="ihide"><span class="tag warn">${hid()[i.name]?'hidden':'snoozed'+(snzUntil(i.name)?' · back '+fmtD(snzUntil(i.name)):'')}</span><button class="snz done" onclick="wake('${i.name.replace(/'/g,"\\'")}')">show</button></div>`:''}</td><td><span class="tag">${i.category}</span></td><td>${fmtD(i.last_buy)}</td><td>${i.times}×</td><td>${i.avg_days?('~'+Math.round(i.avg_days)+'d'):'<span class=mut>—</span>'}</td><td>${stock===null?'<span class=mut>—</span>':`<div class="bar" style="width:70px"><i style="width:${stock}%;background:${segColor(u.pct)}"></i></div>`}</td><td style="font-weight:600">${money(i.avg_cost)}</td></tr>`;}).join('');
   $('#view').innerHTML=`<h1>Inventory</h1><div class="psub">${D.inv.length} products · est. stock from purchase cycles</div>${statCards()}
   <div class="card"><div class="srch"><span class="material-symbols-outlined">search</span><input id="invq" type="search" placeholder="Search items or brands…" value="${(state.q||'').replace(/"/g,'&quot;')}" oninput="state.q=this.value.toLowerCase();clearTimeout(window._qt);window._qt=setTimeout(()=>{render();const el=document.getElementById('invq');if(el){el.focus();el.setSelectionRange(el.value.length,el.value.length);}},200)"></div><div class="chips">${chips}</div><div class="mut" style="font-size:12px;margin-bottom:10px">${list.length} of ${D.inv.length} shown</div><div style="overflow-x:auto"><table class="${state.density==='compact'?'dense':''}"><thead><tr><th>Item</th><th>Category</th><th>Last</th><th>Bought</th><th>Cycle</th><th>Est. stock</th><th>Avg cost</th></tr></thead><tbody>${rows}</tbody></table></div></div>`;
 }
@@ -816,13 +865,13 @@ function toggleCheck(n){const c=store.get('ddg_list_checked',{});if(c[n])delete 
 function finishShop(){const c=store.get('ddg_list_checked',{});const r=restocked();const t=new Date().toISOString().slice(0,10);Object.keys(c).forEach(n=>{r[n]=t;});store.set('ddg_restocked_v1',r);store.set('ddg_list_checked',{});render();}
 function renderList(){
   const checked=store.get('ddg_list_checked',{});
-  const items=D.burn.map(withUrg).filter(b=>!isDown(b.name)&&b.pct>=85).sort((a,b)=>b.pct-a.pct);
+  const items=D.burn.map(withUrg).filter(b=>!isDown(b.name)&&!isStray(b.name)&&b.pct>=85).sort((a,b)=>b.pct-a.pct);
   const byCat={};items.forEach(b=>{(byCat[b.category]=byCat[b.category]||[]).push(b);});
   const cats=Object.entries(byCat).sort((a,b)=>b[1].length-a[1].length);
   let priced=0,total=0,unchecked=0;
   items.forEach(b=>{if(!checked[b.name]){unchecked++;const p=priceFor(b.name);if(p){priced++;total+=p.now;}}});
   const rows=cats.map(([cat,list])=>`<div class="lcat"><div class="lcath"><span class="cico">${catIcon(cat)}</span>${cat}</div>${list.map(b=>{const ck=!!checked[b.name];const p=priceFor(b.name);
-    return `<div class="lrow ${ck?'ck':''}" data-snz="${b.name.replace(/"/g,'&quot;')}" onclick="toggleCheck('${b.name.replace(/'/g,"\\'")}')"><span class="lck material-symbols-outlined">${ck?'check_circle':'radio_button_unchecked'}</span><span class="ic">${iconFor(b.name)}</span><span class="lnm">${b.name}</span>${p?`<span class="lpr">${priceTag(b.name)}</span>`:''}</div>`;}).join('')}</div>`).join('');
+    return `<div class="lrow ${ck?'ck':''}" data-snz="${b.name.replace(/"/g,'&quot;')}" onclick="toggleCheck('${b.name.replace(/'/g,"\\'")}')"><span class="lck material-symbols-outlined">${ck?'check_circle':'radio_button_unchecked'}</span><span class="ic">${iconFor(b.name)}</span><span class="lnm">${dispName(b.name)}</span>${p?`<span class="lpr">${priceTag(b.name)}</span>`:''}</div>`;}).join('')}</div>`).join('');
   const hero=`<div class="hero"><div class="hl">SHOPPING LIST</div><div class="hamt">${unchecked} item${unchecked!==1?'s':''}</div><div class="hd" style="color:var(--pri)"><span class="material-symbols-outlined" style="font-size:18px">shopping_cart_checkout</span> estimated ${money(total)}${priced<unchecked?` · <span class="mut" style="font-weight:400">${priced} of ${unchecked} priced</span>`:''}</div><div class="mut" style="font-size:12.5px;margin-top:8px">Prices refresh from your DDG Price bookmarklet</div></div>`;
   const doneBtn=items.some(b=>checked[b.name])?`<button class="btn" style="width:100%;margin-top:12px" onclick="finishShop()">Done — mark ticked items as bought</button>`:'';
   $('#view').innerHTML=`<h1>Shopping List</h1><div class="psub">what's due, from your buying cycles</div>${hero}<div class="card">${rows||'<div class="mut" style="padding:12px 0">Nothing due right now ✨</div>'}${doneBtn}</div>`;
@@ -859,6 +908,7 @@ async function loadLive(force){
   try{const r3=await fetch(PRICES_URL+'?t='+Date.now(),{cache:'no-store'});if(r3.ok){const pj=await r3.json();PRICEMAP={};(pj.items||[]).forEach(it=>{PRICEMAP[gnorm(it.name)]={now:it.price,was:it.was,at:pj.generated};});}}catch(e){}
   render();syncManual();
 }
+document.body.classList.add('fp');setTimeout(()=>document.body.classList.remove('fp'),1200);
 setTheme(store.get('ddg_theme','dark'));setDen(state.density);loadLive();
 if('serviceWorker' in navigator){window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));}
 </script></body></html>
