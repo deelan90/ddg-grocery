@@ -351,8 +351,11 @@ tbody tr:hover{background:rgba(255,255,255,.035)}
 
 /* ---------- product photos ---------- */
 .ic.ph{display:inline-grid;place-items:center;width:34px;height:34px;flex:0 0 34px;border-radius:10px;
-  background:#fff;overflow:hidden;box-shadow:0 2px 6px rgba(0,0,0,.35);position:relative;z-index:1}
-.ic.ph img{width:100%;height:100%;object-fit:contain;display:block}
+  background:rgba(255,255,255,.07);overflow:hidden;position:relative;z-index:1;
+  transition:background .25s ease,box-shadow .25s ease}
+.ic.ph.rdy{background:#fff;box-shadow:0 2px 6px rgba(0,0,0,.35)}
+.ic.ph img{width:100%;height:100%;object-fit:contain;display:block;opacity:0;transition:opacity .3s ease}
+.ic.ph.rdy img{opacity:1}
 .ic.ph.lg{width:42px;height:42px;flex:0 0 42px;border-radius:12px}
 .dbar .ic.ph{margin-right:2px}
 .lrow .ic.ph{margin-right:4px}
@@ -607,7 +610,7 @@ function photoFor(name){
 /* Photo if we have one, emoji if not — same footprint either way. */
 function thumb(name,cls){
   const p=photoFor(name);
-  return p?`<span class="ic ph ${cls||''}"><img loading="lazy" src="${p}" alt="" onerror="this.parentElement.textContent='${iconFor(name)}';this.parentElement.classList.remove('ph')"></span>`
+  return p?`<span class="ic ph ${cls||''}"><img loading="lazy" decoding="async" src="${p}" alt="" onload="this.parentElement.classList.add('rdy')" onerror="this.parentElement.textContent='${iconFor(name)}';this.parentElement.classList.remove('ph')"></span>`
           :`<span class="ic ${cls||''}">${iconFor(name)}</span>`;
 }
 /* ---------- display-only renaming (never touches product mapping) ---------- */
