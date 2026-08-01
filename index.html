@@ -484,7 +484,13 @@ const LIVE_ENDPOINT="https://raw.githubusercontent.com/deelan90/ddg-grocery/main
 const INSIGHTS_URL="https://raw.githubusercontent.com/deelan90/ddg-grocery/main/insights.json";
 const PRICES_URL="https://raw.githubusercontent.com/deelan90/ddg-grocery/main/coles_prices.json";
 const IMAGES_URL="https://raw.githubusercontent.com/deelan90/ddg-grocery/main/coles_images.json";
-const MANUAL_WEBHOOK="http://192.168.0.11:5678/webhook/ddg-manual-add"; // works at home; away saves locally & syncs later
+// The app is served over HTTPS, so a plain http:// LAN webhook is blocked by the browser.
+// Set an HTTPS base for n8n (e.g. a Tailscale Serve hostname) in Settings — stored on this device.
+const MANUAL_WEBHOOK_DEFAULT="http://192.168.0.11:5678/webhook/ddg-manual-add";
+function n8nBase(){return (store.get('ddg_n8n_base','')||'').replace(/\/+$/,'');}
+function manualWebhook(){const b=n8nBase();return b?b+'/webhook/ddg-manual-add':MANUAL_WEBHOOK_DEFAULT;}
+function setN8nBase(v){store.set('ddg_n8n_base',(v||'').trim().replace(/\/+$/,''));render();}
+function editN8nBase(){const v=prompt('HTTPS address of your n8n (leave blank to use the local one)\n\nExample: https://dockerdee.tail1234.ts.net',n8nBase());if(v!==null)setN8nBase(v);}
 const $=s=>document.querySelector(s);
 const money=n=>'$'+(n||0).toLocaleString('en-AU',{minimumFractionDigits:2,maximumFractionDigits:2});
 const money0=n=>'$'+Math.round(n||0).toLocaleString('en-AU');
@@ -610,7 +616,7 @@ function photoFor(name){
 /* Photo if we have one, emoji if not — same footprint either way. */
 function thumb(name,cls){
   const p=photoFor(name);
-  return p?`<span class="ic ph ${cls||''}"><img loading="lazy" decoding="async" src="${p}" alt="" onload="this.parentElement.classList.add('rdy')" onerror="this.parentElement.textContent='${iconFor(name)}';this.parentElement.classList.remove('ph')"></span>`
+  return p?`<span class="ic ph ${cls||''}"><img decoding="async" src="${p}" alt="" onload="this.parentElement.classList.add('rdy')" onerror="this.parentElement.textContent='${iconFor(name)}';this.parentElement.classList.remove('ph')"></span>`
           :`<span class="ic ${cls||''}">${iconFor(name)}</span>`;
 }
 /* ---------- display-only renaming (never touches product mapping) ---------- */
@@ -876,11 +882,30 @@ async function saveShop(){
   const total=Math.round(cart.reduce((s,c)=>s+c.qty*c.price,0)*100)/100;
   const rec={id:'MANUAL-'+Date.now(),date,store:storeN,total,items:cart.map(c=>({...c})),synced:false};
   const all=store.get('manual_orders',[]);all.push(rec);store.set('manual_orders',all);
-  try{const r=await fetch(MANUAL_WEBHOOK,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(rec)});if(r.ok){rec.synced=true;store.set('manual_orders',all);}}catch(e){}
+  try{const r=await fetch(manualWebhook(),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(rec)});if(r.ok){rec.synced=true;store.set('manual_orders',all);}}catch(e){}
   cart=[];D=deriveFromRaw(RAW);state.view='dash';document.querySelectorAll('.drawer a').forEach(x=>x.classList.toggle('on',x.dataset.v==='dash'));render();
 }
+let SYNCMSG='';
+/* Sync with visible feedback — silent failures are how manual shops went missing for months. */
+async function doSync(){
+  const all=store.get('manual_orders',[]);
+  const todo=all.filter(m=>!m.synced);
+  if(!todo.length){SYNCMSG='Everything is already synced.';render();return;}
+  SYNCMSG='Syncing '+todo.length+'…';render();
+  let ok=0,fail=0,lastErr='';
+  for(const r of todo){
+    try{
+      const res=await fetch(manualWebhook(),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(r)});
+      if(res.ok){r.synced=true;ok++;}else{fail++;lastErr='server said '+res.status;}
+    }catch(e){fail++;lastErr=/Failed to fetch/i.test(e.message)?'couldn\'t reach n8n — check the address above and that you\'re on the same network/VPN':e.message;}
+  }
+  store.set('manual_orders',all);
+  SYNCMSG=ok?(ok+' synced'+(fail?', '+fail+' failed — '+lastErr:'. Refresh in a minute to see them counted.')):('Nothing synced — '+lastErr);
+  render();
+  if(ok)setTimeout(()=>loadLive(true),6000);
+}
 async function syncManual(){const all=store.get('manual_orders',[]);let ch=false;
-  for(const r of all){if(!r.synced){try{const res=await fetch(MANUAL_WEBHOOK,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(r)});if(res.ok){r.synced=true;ch=true;}}catch(e){}}}
+  for(const r of all){if(!r.synced){try{const res=await fetch(manualWebhook(),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(r)});if(res.ok){r.synced=true;ch=true;}}catch(e){}}}
   if(ch)store.set('manual_orders',all);}
 function renderSet(){
   const snl=[...new Set([...Object.keys(snz()).filter(n=>snzUntil(n)),...Object.keys(hid())])];const manual=store.get('manual_orders',[]);
@@ -888,7 +913,8 @@ function renderSet(){
   <div class="grid"><div class="card"><h2>Data</h2>
   <div class="setrow"><div><div style="font-weight:600">Coles warehouse</div><div class="mut" style="font-size:12px">auto-ingest via n8n · updated ${fmtD(D.stats.last_order)}</div></div><span class="pill ok">Connected</span></div>
   <div class="setrow"><div><div style="font-weight:600">Live feed</div><div class="mut" style="font-size:12px">data.json pushed by n8n every 6h</div></div><span class="pill ok">GitHub Pages</span></div>
-  <div class="setrow"><div><div style="font-weight:600">Manual shops</div><div class="mut" style="font-size:12px">${manual.length} logged · ${manual.filter(m=>!m.synced).length} awaiting sync to warehouse</div></div><button class="snz" onclick="syncManual().then(render)">Sync now</button></div>
+  <div class="setrow"><div><div style="font-weight:600">n8n address</div><div class="mut" style="font-size:12px">${n8nBase()?n8nBase():'not set — manual shops can\'t reach the warehouse from a https page'}</div></div><button class="snz" onclick="editN8nBase()">${n8nBase()?'Change':'Set'}</button></div>
+  <div class="setrow"><div><div style="font-weight:600">Manual shops</div><div class="mut" style="font-size:12px">${manual.length} logged · <b style="color:${manual.filter(m=>!m.synced).length?'var(--over)':'var(--pri)'}">${manual.filter(m=>!m.synced).length} awaiting sync</b> to the warehouse</div>${SYNCMSG?`<div class="mut" style="font-size:11.5px;margin-top:4px">${SYNCMSG}</div>`:''}</div><button class="snz" onclick="doSync()">Sync now</button></div>
   <div class="setrow"><div><div style="font-weight:600">AI insights (Gemini)</div><div class="mut" style="font-size:12px">weekly trends & predictions</div></div><span class="pill ${INSIGHTS?'ok':'due'}">${INSIGHTS?'Active':'Set up in n8n'}</span></div></div>
   <div class="card"><h2>Snoozed &amp; hidden</h2><div class="cs">tap Show to bring an item back</div>
   ${snl.length?snl.map(n=>`<div class="setrow"><div><div style="font-weight:600;font-size:13.5px">${n}</div><div class="mut" style="font-size:11.5px">${hid()[n]?'hidden until re-enabled':'back around '+fmtD(snzUntil(n))}</div></div><button class="snz done" onclick="wake('${n.replace(/'/g,"\\'")}')">Show</button></div>`).join(''):'<div class="mut">Nothing snoozed or hidden.</div>'}
