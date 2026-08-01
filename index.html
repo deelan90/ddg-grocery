@@ -915,6 +915,8 @@ function render(){
   const v=state.view;
   if(v==='dash')renderDash();else if(v==='list')renderList();else if(v==='inv')renderInv();else if(v==='ord')renderOrd();else if(v==='add')renderAdd();else renderSet();
   countUp();
+  // Cached photos can finish loading before their onload handler is wired up.
+  document.querySelectorAll('.ic.ph img').forEach(i=>{if(i.complete&&i.naturalWidth>0)i.parentElement.classList.add('rdy');});
 }
 /* Animate the big numbers so the page feels alive on open. */
 function countUp(){
