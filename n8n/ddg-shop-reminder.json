@@ -1,0 +1,223 @@
+{
+  "name": "DDG Grocery - shop reminder",
+  "nodes": [
+    {
+      "id": "a1b2c3d4-0001-4000-8000-000000000001",
+      "name": "Every evening",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        0
+      ],
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "days",
+              "daysInterval": 1,
+              "triggerAtHour": 18,
+              "triggerAtMinute": 0
+            }
+          ]
+        }
+      },
+      "notes": "Runs once a day at 6 pm Brisbane time. Change the hour here if you want a different time."
+    },
+    {
+      "id": "a1b2c3d4-0002-4000-8000-000000000002",
+      "name": "Get grocery data",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        240,
+        0
+      ],
+      "parameters": {
+        "url": "https://raw.githubusercontent.com/deelan90/ddg-grocery/main/data.json",
+        "options": {}
+      }
+    },
+    {
+      "id": "a1b2c3d4-0003-4000-8000-000000000003",
+      "name": "Work out reminder",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        480,
+        0
+      ],
+      "parameters": {
+        "jsCode": "// ---- Settings you can change ----------------------------------------\nconst LEAD_DAYS = 2;       // remind this many days before the predicted shop\nconst FORCE_SEND = false;  // true = always send (use for testing, then set back to false)\nconst APP_URL = 'https://deelan90.github.io/ddg-grocery/?view=list';\n// ----------------------------------------------------------------------\n\n// Same rules as the Double D Grocery app (see index.html: forecast() and the Shopping List).\nconst raw = $input.first().json;\nconst data = raw.data || raw;\nconst DAY = 86400000;\nconst daysBetween = (a, b) => Math.round((b - a) / DAY);\nconst median = a => {\n  if (!a.length) return 0;\n  const s = [...a].sort((x, y) => x - y);\n  const m = Math.floor(s.length / 2);\n  return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2;\n};\n\n// \"Today\" in Brisbane (no daylight saving), as a date at midnight UTC so it compares with order dates.\nconst todayStr = new Date(Date.now() + 10 * 3600000).toISOString().slice(0, 10);\nconst today = new Date(todayStr);\n\n// ---- 1. Predict the next shop -------------------------------------------\nconst colesOrders = (data.orders || [])\n  .filter(o => !((Number(o.items) || 0) === 0 && (Number(o.amt) || 0) <= 0));\nconst online = colesOrders.filter(o => !String(o.ordno || '').toUpperCase().startsWith('INSTORE'));\nconst basis = (online.length >= 6 ? online : colesOrders)\n  .slice().sort((a, b) => new Date(a.d) - new Date(b.d));\nif (basis.length < 6) {\n  return [{ json: { send: false, reason: 'Not enough shop history yet' } }];\n}\nconst dates = basis.map(o => new Date(o.d));\nconst gaps = [];\nfor (let i = 1; i < dates.length; i++) {\n  const g = daysBetween(dates[i - 1], dates[i]);\n  if (g > 0 && g < 60) gaps.push(g);\n}\nconst gap = median(gaps.slice(-8));\nif (!(gap > 0)) return [{ json: { send: false, reason: 'Could not work out your shopping gap' } }];\nlet next = new Date(dates[dates.length - 1].getTime() + gap * DAY);\nwhile (next < today) next = new Date(next.getTime() + gap * DAY);\nconst daysUntil = daysBetween(today, next);\nconst key = next.toISOString().slice(0, 10);\n\n// ---- 2. Find items that look low ------------------------------------------\nconst norm = n => String(n || '').toLowerCase().replace(/\\s+/g, ' ').trim();\nconst lastByName = {};\n(data.catalog || []).forEach(p => {\n  const k = norm(p.product_name);\n  if (p.last_buy && (!lastByName[k] || p.last_buy > lastByName[k])) lastByName[k] = p.last_buy;\n});\nconst groups = {};\n(data.burndown || []).forEach(b => {\n  if (!b.last_bought || !(b.avg_days > 0)) return;\n  const k = norm(b.product_name);\n  (groups[k] = groups[k] || []).push(b);\n});\nconst isStray = n => {\n  const s = String(n || '').trim();\n  return s.length < 4 || /^coles$/i.test(s) || s.replace(/[^a-zA-Z]/g, '').length < 4 || !/[a-z]/.test(s);\n};\nconst cutoff = new Date(today.getTime() - 210 * DAY);\nconst due = [];\nObject.entries(groups).forEach(([k, rows]) => {\n  const base = rows.slice().sort((a, b) => (b.seen || 0) - (a.seen || 0))[0];\n  let last = rows.map(r => r.last_bought).sort().slice(-1)[0];\n  if (lastByName[k] && lastByName[k] > last) last = lastByName[k];\n  const lb = new Date(last);\n  if (isNaN(lb) || lb < cutoff || isStray(base.product_name)) return;\n  const pct = daysBetween(lb, today) / base.avg_days * 100;\n  if (pct >= 85) due.push({ name: base.product_name, importance: (base.seen || 0) * (30 / base.avg_days) });\n});\ndue.sort((a, b) => b.importance - a.importance);\nconst top = due.slice(0, 5).map(d => d.name);\n\n// ---- 3. Write the message --------------------------------------------------\nconst DOW = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];\nconst MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];\nconst when = daysUntil <= 0 ? 'today'\n  : daysUntil === 1 ? 'tomorrow'\n  : 'on ' + DOW[next.getUTCDay()] + ' ' + next.getUTCDate() + ' ' + MON[next.getUTCMonth()];\nconst lastOrder = dates[dates.length - 1];\nconst dataAgeDays = daysBetween(lastOrder, today);\nconst staleNote = dataAgeDays > 45\n  ? ` Heads up: your latest Coles order on file is from ${lastOrder.getUTCDate()} ${MON[lastOrder.getUTCMonth()]}, so this may be out of date.`\n  : '';\nconst message = (due.length\n  ? `Your next Coles shop looks due ${when}. ${due.length} item${due.length > 1 ? 's look' : ' looks'} low: ${top.join(', ')}${due.length > top.length ? ' and ' + (due.length - top.length) + ' more' : ''}. Want to check your list?`\n  : `Your next Coles shop looks due ${when}. Nothing looks low yet, but now is a good time to write up your list.`) + staleNote;\n\n// ---- 4. Decide whether to send (once per predicted shop) ------------------\nconst sd = $getWorkflowStaticData('global');\nconst alreadySent = sd.lastKey === key;\nconst send = FORCE_SEND || (daysUntil >= 0 && daysUntil <= LEAD_DAYS && !alreadySent);\n\nreturn [{ json: {\n  send, title: 'Grocery shop coming up', message, appUrl: APP_URL,\n  key, daysUntil, dueCount: due.length, top, alreadySent, dataAgeDays\n} }];\n"
+      },
+      "notes": "Settings (days before, test mode, app link) are at the top of the code."
+    },
+    {
+      "id": "a1b2c3d4-0004-4000-8000-000000000004",
+      "name": "Time to remind?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        720,
+        0
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "c1d2e3f4-0001-4000-8000-0000000000a1",
+              "leftValue": "={{ $json.send }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "a1b2c3d4-0005-4000-8000-000000000005",
+      "name": "Send phone push (ntfy)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        960,
+        -80
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://ntfy.sh",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ topic: 'ddg-grocery-CHANGE-ME', title: $('Work out reminder').first().json.title, message: $('Work out reminder').first().json.message, tags: ['shopping_cart'], click: $('Work out reminder').first().json.appUrl, priority: 3 }) }}",
+        "options": {}
+      },
+      "notes": "Change 'ddg-grocery-CHANGE-ME' to your own long random topic name. On a self-hosted ntfy, change the URL above too."
+    },
+    {
+      "id": "a1b2c3d4-0006-4000-8000-000000000006",
+      "name": "Send email (optional)",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        1200,
+        -80
+      ],
+      "disabled": true,
+      "parameters": {
+        "resource": "message",
+        "operation": "send",
+        "sendTo": "YOU@example.com",
+        "subject": "=Grocery shop coming up",
+        "emailType": "html",
+        "message": "={{ '<p>' + $('Work out reminder').first().json.message + '</p><p><a href=\"' + $('Work out reminder').first().json.appUrl + '\">Open your shopping list</a></p>' }}",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "notes": "Switched off. To use: add your Gmail login, put your address in 'To', then enable this node."
+    },
+    {
+      "id": "a1b2c3d4-0007-4000-8000-000000000007",
+      "name": "Remember it was sent",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1440,
+        -80
+      ],
+      "parameters": {
+        "jsCode": "const key = $('Work out reminder').first().json.key;\n// Remember this shop so you only get one reminder for it.\n$getWorkflowStaticData('global').lastKey = key;\nreturn $input.all();"
+      }
+    }
+  ],
+  "connections": {
+    "Every evening": {
+      "main": [
+        [
+          {
+            "node": "Get grocery data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get grocery data": {
+      "main": [
+        [
+          {
+            "node": "Work out reminder",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Work out reminder": {
+      "main": [
+        [
+          {
+            "node": "Time to remind?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Time to remind?": {
+      "main": [
+        [
+          {
+            "node": "Send phone push (ntfy)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Send phone push (ntfy)": {
+      "main": [
+        [
+          {
+            "node": "Send email (optional)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send email (optional)": {
+      "main": [
+        [
+          {
+            "node": "Remember it was sent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "Australia/Brisbane"
+  },
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": false
+  }
+}
